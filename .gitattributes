@@ -1,0 +1,11 @@
+# Keep Linux (LF) line endings everywhere: the chaincode is built and run
+# inside Ubuntu (WSL) and Fabric's Docker containers, where CRLF breaks
+# shell scripts and gofmt reports CRLF-formatted Go files.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.docx binary
+*.tar.gz binary
