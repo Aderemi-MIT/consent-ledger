@@ -1,0 +1,2276 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "ecceb3b4-d75d-4e87-9363-50d81e7138bb",
+        "name": "1. Grant Consent",
+        "request": {
+          "url": {
+            "path": [
+              "consent",
+              "grant"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\",\n  \"scope\": \"full-record\",\n  \"expiry\": \"2026-12-31T00:00:00Z\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "b19b0b21-c60c-411e-bc9c-f9395e4c710d",
+        "name": "2. Request Access",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "request"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1001\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "d3c419bb-48f0-45c3-b61b-cd728caf974b",
+        "name": "3. Verify And Grant Access",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "verify"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1001\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "23e22c8e-34a5-4aa3-a1a3-cd81367622f4",
+        "name": "4. Get Audit Log Entry",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "log"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "requestId",
+                "value": "req-1001"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "033b361b-3b88-4b11-bfb3-ac2387756bb1",
+        "name": "5. Revoke Consent",
+        "request": {
+          "url": {
+            "path": [
+              "consent",
+              "revoke"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "46b38701-fea8-469b-b9e3-4be7021df66f",
+        "name": "6. Request Access (after revoke)",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "request"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1002\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "34f57c45-3bce-40a8-8b74-533e3c456417",
+        "name": "7. Verify And Grant Access (expect DENIED)",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "verify"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1002\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "b2ea5be8-a39e-497a-931d-5afecb846fef",
+        "name": "8. Get Audit Log Entry (after revoke, hash-chained to #4)",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "log"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "requestId",
+                "value": "req-1002"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": []
+      },
+      {
+        "id": "07a03fab-5601-46fe-b53b-78f01d4b0b61",
+        "name": "9. Verify Unknown Request (expect 400 error)",
+        "request": {
+          "url": {
+            "path": [
+              "access",
+              "verify"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"does-not-exist\"\n}"
+          }
+        },
+        "response": [],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "http://localhost:8080",
+        "key": "baseUrl"
+      }
+    ],
+    "info": {
+      "_postman_id": "05af4427-4c86-49b8-8c2f-2d08f3ca8185",
+      "name": "Consent-and-Access-Control Chaincode (Section 3.5)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Exercises the five chaincode functions via the REST wrapper in cmd/api. Matches the request/response transcript captured in test_evidence.md. Point {{baseUrl}} at the Fabric-Gateway-backed deployment once Steps 3-4 of deployment/README.md are complete.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "b68472c2-6244-42d8-8bd5-ad0fa37082c5",
+    "values": [
+      {
+        "type": "any",
+        "value": "http://localhost:18080",
+        "key": "baseUrl"
+      }
+    ]
+  },
+  "globals": {
+    "id": "ad48fa3a-acef-4a96-b091-d261b154eb50",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 2311.8888888888887,
+      "responseMin": 13,
+      "responseMax": 5126,
+      "responseSd": 1878.4213492803206,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1791910144267,
+      "completed": 1791910165773
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 9,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "005d4df7-e4cc-4f25-a6e5-ddb5c4e7cac0",
+          "httpRequestId": "7e24f88c-3896-4f87-9d92-21b262731fed"
+        },
+        "item": {
+          "id": "ecceb3b4-d75d-4e87-9363-50d81e7138bb",
+          "name": "1. Grant Consent",
+          "request": {
+            "url": {
+              "path": [
+                "consent",
+                "grant"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\",\n  \"scope\": \"full-record\",\n  \"expiry\": \"2026-12-31T00:00:00Z\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "consent",
+              "grant"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6fdcad02-703a-480d-9add-68332600325d",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "128",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\",\n  \"scope\": \"full-record\",\n  \"expiry\": \"2026-12-31T00:00:00Z\"\n}"
+          }
+        },
+        "response": {
+          "id": "c857dba2-1ed0-4c2b-bd4a-41d35d8f0641",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:07 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "29"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              99,
+              111,
+              110,
+              115,
+              101,
+              110,
+              116,
+              32,
+              103,
+              114,
+              97,
+              110,
+              116,
+              101,
+              100,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2850,
+          "responseSize": 29
+        },
+        "id": "ecceb3b4-d75d-4e87-9363-50d81e7138bb"
+      },
+      {
+        "cursor": {
+          "ref": "5ef76df5-56fe-4b9e-a3cc-c2ad7dac8f3f",
+          "length": 9,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "ac794c4c-35f2-4966-90c8-43c1fedfd545"
+        },
+        "item": {
+          "id": "b19b0b21-c60c-411e-bc9c-f9395e4c710d",
+          "name": "2. Request Access",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "request"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"req-1001\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "request"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d9627b79-77ee-45d1-b2d5-607dede55b38",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "129",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1001\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+          }
+        },
+        "response": {
+          "id": "02720b21-880e-4f21-bde7-a54d97f8476c",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:19 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "30"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              97,
+              99,
+              99,
+              101,
+              115,
+              115,
+              32,
+              114,
+              101,
+              113,
+              117,
+              101,
+              115,
+              116,
+              101,
+              100,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2629,
+          "responseSize": 30
+        },
+        "id": "b19b0b21-c60c-411e-bc9c-f9395e4c710d"
+      },
+      {
+        "cursor": {
+          "ref": "ca81b9f9-bb84-420e-9f1a-b8694da6d84b",
+          "length": 9,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "8e8773f6-e09c-40fe-821d-8e6251b89422"
+        },
+        "item": {
+          "id": "d3c419bb-48f0-45c3-b61b-cd728caf974b",
+          "name": "3. Verify And Grant Access",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "verify"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"req-1001\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "verify"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "62689f8f-f1da-4f08-bd98-d66fd955fc37",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "29",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1001\"\n}"
+          }
+        },
+        "response": {
+          "id": "24904f05-8242-413c-98c3-1c277a055b60",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:23 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "69"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              103,
+              114,
+              97,
+              110,
+              116,
+              101,
+              100,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              44,
+              34,
+              111,
+              117,
+              116,
+              99,
+              111,
+              109,
+              101,
+              34,
+              58,
+              34,
+              71,
+              82,
+              65,
+              78,
+              84,
+              69,
+              68,
+              34,
+              44,
+              34,
+              114,
+              101,
+              99,
+              111,
+              114,
+              100,
+              82,
+              101,
+              102,
+              101,
+              114,
+              101,
+              110,
+              99,
+              101,
+              34,
+              58,
+              34,
+              101,
+              104,
+              114,
+              45,
+              114,
+              101,
+              102,
+              45,
+              53,
+              53,
+              65,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5126,
+          "responseSize": 69
+        },
+        "id": "d3c419bb-48f0-45c3-b61b-cd728caf974b"
+      },
+      {
+        "cursor": {
+          "ref": "88621db1-9233-4f7d-94aa-0b8495f15733",
+          "length": 9,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "7efd6e65-b3d8-4b2e-88c0-d2c81a76b523"
+        },
+        "item": {
+          "id": "23e22c8e-34a5-4aa3-a1a3-cd81367622f4",
+          "name": "4. Get Audit Log Entry",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "log"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "requestId",
+                  "value": "req-1001"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "log"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [
+              {
+                "key": "requestId",
+                "value": "req-1001"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "da9fb361-7ab6-40e0-9739-ccfb8cc25c09",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "08fa235b-5788-47f6-924f-8014f8a42b35",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:23 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "185"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              114,
+              101,
+              113,
+              117,
+              101,
+              115,
+              116,
+              73,
+              100,
+              34,
+              58,
+              34,
+              114,
+              101,
+              113,
+              45,
+              49,
+              48,
+              48,
+              49,
+              34,
+              44,
+              34,
+              111,
+              117,
+              116,
+              99,
+              111,
+              109,
+              101,
+              34,
+              58,
+              34,
+              71,
+              82,
+              65,
+              78,
+              84,
+              69,
+              68,
+              34,
+              44,
+              34,
+              108,
+              111,
+              103,
+              103,
+              101,
+              100,
+              65,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              49,
+              51,
+              84,
+              49,
+              54,
+              58,
+              52,
+              57,
+              58,
+              50,
+              49,
+              46,
+              53,
+              52,
+              54,
+              56,
+              55,
+              56,
+              50,
+              48,
+              49,
+              90,
+              34,
+              44,
+              34,
+              115,
+              101,
+              113,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              114,
+              101,
+              118,
+              72,
+              97,
+              115,
+              104,
+              34,
+              58,
+              34,
+              34,
+              44,
+              34,
+              104,
+              97,
+              115,
+              104,
+              34,
+              58,
+              34,
+              98,
+              56,
+              97,
+              50,
+              52,
+              55,
+              54,
+              49,
+              49,
+              56,
+              51,
+              100,
+              101,
+              51,
+              97,
+              49,
+              48,
+              50,
+              51,
+              100,
+              55,
+              97,
+              99,
+              48,
+              53,
+              55,
+              52,
+              98,
+              99,
+              51,
+              101,
+              53,
+              99,
+              97,
+              48,
+              50,
+              99,
+              97,
+              52,
+              49,
+              57,
+              49,
+              57,
+              100,
+              53,
+              54,
+              49,
+              52,
+              55,
+              54,
+              50,
+              48,
+              55,
+              57,
+              98,
+              54,
+              56,
+              101,
+              99,
+              56,
+              54,
+              54,
+              48,
+              98,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 13,
+          "responseSize": 185
+        },
+        "id": "23e22c8e-34a5-4aa3-a1a3-cd81367622f4"
+      },
+      {
+        "cursor": {
+          "ref": "49ab8272-8bb7-4fd2-b30c-71130198b406",
+          "length": 9,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "47ea0389-a66e-4261-880d-7c7cf6cfd2fe"
+        },
+        "item": {
+          "id": "033b361b-3b88-4b11-bfb3-ac2387756bb1",
+          "name": "5. Revoke Consent",
+          "request": {
+            "url": {
+              "path": [
+                "consent",
+                "revoke"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "consent",
+              "revoke"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9f36e34f-bbb7-4a0b-85bd-9a1120cb57f6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "66",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\"\n}"
+          }
+        },
+        "response": {
+          "id": "0c2e1d1d-9c18-415a-aefc-99072c9fde94",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:26 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "29"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              99,
+              111,
+              110,
+              115,
+              101,
+              110,
+              116,
+              32,
+              114,
+              101,
+              118,
+              111,
+              107,
+              101,
+              100,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2572,
+          "responseSize": 29
+        },
+        "id": "033b361b-3b88-4b11-bfb3-ac2387756bb1"
+      },
+      {
+        "cursor": {
+          "ref": "bb64e6ca-c3bb-4b81-ad25-536858784d6c",
+          "length": 9,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "c61b622a-316f-42c1-bb02-d94e17ccb950"
+        },
+        "item": {
+          "id": "46b38701-fea8-469b-b9e3-4be7021df66f",
+          "name": "6. Request Access (after revoke)",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "request"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"req-1002\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "request"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "01bbe1fc-3fb1-4c17-b811-0fb4095ad242",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "129",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1002\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+          }
+        },
+        "response": {
+          "id": "cb28a7b0-dc50-415d-b819-f85c9eec1dd4",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:28 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "30"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              97,
+              99,
+              99,
+              101,
+              115,
+              115,
+              32,
+              114,
+              101,
+              113,
+              117,
+              101,
+              115,
+              116,
+              101,
+              100,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2538,
+          "responseSize": 30
+        },
+        "id": "46b38701-fea8-469b-b9e3-4be7021df66f"
+      },
+      {
+        "cursor": {
+          "ref": "83033624-7d72-47e1-b20c-64433115db49",
+          "length": 9,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "c21e99c4-1671-4cb9-88ab-72b87becc6d9"
+        },
+        "item": {
+          "id": "34f57c45-3bce-40a8-8b74-533e3c456417",
+          "name": "7. Verify And Grant Access (expect DENIED)",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "verify"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"req-1002\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "verify"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2cb2330a-58dc-420f-8ecc-b70026ff90a6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "29",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"req-1002\"\n}"
+          }
+        },
+        "response": {
+          "id": "d78ed31f-128e-4eac-83ff-ea9b29ebca46",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:33 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "58"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              103,
+              114,
+              97,
+              110,
+              116,
+              101,
+              100,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              44,
+              34,
+              111,
+              117,
+              116,
+              99,
+              111,
+              109,
+              101,
+              34,
+              58,
+              34,
+              68,
+              69,
+              78,
+              73,
+              69,
+              68,
+              34,
+              44,
+              34,
+              114,
+              101,
+              99,
+              111,
+              114,
+              100,
+              82,
+              101,
+              102,
+              101,
+              114,
+              101,
+              110,
+              99,
+              101,
+              34,
+              58,
+              34,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5049,
+          "responseSize": 58
+        },
+        "id": "34f57c45-3bce-40a8-8b74-533e3c456417"
+      },
+      {
+        "cursor": {
+          "ref": "113cb315-d57d-4aed-a631-004c6fb0e980",
+          "length": 9,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "ee38a45e-3167-45b0-900b-571017310ab5"
+        },
+        "item": {
+          "id": "b2ea5be8-a39e-497a-931d-5afecb846fef",
+          "name": "8. Get Audit Log Entry (after revoke, hash-chained to #4)",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "log"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "requestId",
+                  "value": "req-1002"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "log"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [
+              {
+                "key": "requestId",
+                "value": "req-1002"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "04920d9c-a573-49b8-9a31-1809bb9612b9",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "a1edd70b-a964-4396-8388-7ade327a4f4b",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:33 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "248"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              114,
+              101,
+              113,
+              117,
+              101,
+              115,
+              116,
+              73,
+              100,
+              34,
+              58,
+              34,
+              114,
+              101,
+              113,
+              45,
+              49,
+              48,
+              48,
+              50,
+              34,
+              44,
+              34,
+              111,
+              117,
+              116,
+              99,
+              111,
+              109,
+              101,
+              34,
+              58,
+              34,
+              68,
+              69,
+              78,
+              73,
+              69,
+              68,
+              34,
+              44,
+              34,
+              108,
+              111,
+              103,
+              103,
+              101,
+              100,
+              65,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              49,
+              51,
+              84,
+              49,
+              54,
+              58,
+              52,
+              57,
+              58,
+              51,
+              49,
+              46,
+              50,
+              49,
+              53,
+              54,
+              52,
+              50,
+              56,
+              51,
+              53,
+              90,
+              34,
+              44,
+              34,
+              115,
+              101,
+              113,
+              34,
+              58,
+              50,
+              44,
+              34,
+              112,
+              114,
+              101,
+              118,
+              72,
+              97,
+              115,
+              104,
+              34,
+              58,
+              34,
+              98,
+              56,
+              97,
+              50,
+              52,
+              55,
+              54,
+              49,
+              49,
+              56,
+              51,
+              100,
+              101,
+              51,
+              97,
+              49,
+              48,
+              50,
+              51,
+              100,
+              55,
+              97,
+              99,
+              48,
+              53,
+              55,
+              52,
+              98,
+              99,
+              51,
+              101,
+              53,
+              99,
+              97,
+              48,
+              50,
+              99,
+              97,
+              52,
+              49,
+              57,
+              49,
+              57,
+              100,
+              53,
+              54,
+              49,
+              52,
+              55,
+              54,
+              50,
+              48,
+              55,
+              57,
+              98,
+              54,
+              56,
+              101,
+              99,
+              56,
+              54,
+              54,
+              48,
+              98,
+              34,
+              44,
+              34,
+              104,
+              97,
+              115,
+              104,
+              34,
+              58,
+              34,
+              54,
+              51,
+              52,
+              56,
+              98,
+              51,
+              51,
+              98,
+              57,
+              56,
+              50,
+              100,
+              51,
+              53,
+              56,
+              100,
+              48,
+              102,
+              50,
+              99,
+              101,
+              50,
+              53,
+              49,
+              98,
+              98,
+              56,
+              57,
+              52,
+              57,
+              51,
+              101,
+              51,
+              51,
+              55,
+              99,
+              56,
+              53,
+              57,
+              57,
+              48,
+              52,
+              53,
+              98,
+              52,
+              99,
+              100,
+              100,
+              101,
+              98,
+              56,
+              102,
+              57,
+              57,
+              101,
+              57,
+              57,
+              102,
+              97,
+              51,
+              51,
+              102,
+              48,
+              102,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 13,
+          "responseSize": 248
+        },
+        "id": "b2ea5be8-a39e-497a-931d-5afecb846fef"
+      },
+      {
+        "cursor": {
+          "ref": "c996a0d8-385d-4c5d-a9aa-56daa46bb57d",
+          "length": 9,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "dedf9371-375a-4c73-b8e2-07835dadd849"
+        },
+        "item": {
+          "id": "07a03fab-5601-46fe-b53b-78f01d4b0b61",
+          "name": "9. Verify Unknown Request (expect 400 error)",
+          "request": {
+            "url": {
+              "path": [
+                "access",
+                "verify"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"does-not-exist\"\n}"
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "18080",
+            "path": [
+              "access",
+              "verify"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6ba7b7bd-d299-4fc7-8446-8f3365860952",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:18080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "35",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"requestId\": \"does-not-exist\"\n}"
+          }
+        },
+        "response": {
+          "id": "90c8de63-0c4e-45e5-8794-03471e1011ad",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 13 Oct 2026 16:49:33 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "45"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              34,
+              114,
+              101,
+              113,
+              117,
+              101,
+              115,
+              116,
+              32,
+              100,
+              111,
+              101,
+              115,
+              45,
+              110,
+              111,
+              116,
+              45,
+              101,
+              120,
+              105,
+              115,
+              116,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              34,
+              125,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 17,
+          "responseSize": 45
+        },
+        "id": "07a03fab-5601-46fe-b53b-78f01d4b0b61"
+      }
+    ],
+    "transfers": {
+      "responseTotal": 723
+    },
+    "failures": [],
+    "error": null
+  }
+}

@@ -1,0 +1,50 @@
+newman
+
+Consent-and-Access-Control Chaincode (Section 3.5)
+
+→ 1. Grant Consent
+  POST http://localhost:18080/consent/grant [200 OK, 137B, 2.8s]
+
+→ 2. Request Access
+  POST http://localhost:18080/access/request [200 OK, 138B, 2.6s]
+
+→ 3. Verify And Grant Access
+  POST http://localhost:18080/access/verify [200 OK, 177B, 5.1s]
+
+→ 4. Get Audit Log Entry
+  GET http://localhost:18080/access/log?requestId=req-1001 [200 OK, 294B, 13ms]
+
+→ 5. Revoke Consent
+  POST http://localhost:18080/consent/revoke [200 OK, 137B, 2.5s]
+
+→ 6. Request Access (after revoke)
+  POST http://localhost:18080/access/request [200 OK, 138B, 2.5s]
+
+→ 7. Verify And Grant Access (expect DENIED)
+  POST http://localhost:18080/access/verify [200 OK, 166B, 5s]
+
+→ 8. Get Audit Log Entry (after revoke, hash-chained to #4)
+  GET http://localhost:18080/access/log?requestId=req-1002 [200 OK, 357B, 13ms]
+
+→ 9. Verify Unknown Request (expect 400 error)
+  POST http://localhost:18080/access/verify [400 Bad Request, 162B, 17ms]
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                  9 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                  0 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                  0 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                  0 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 21.5s                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 723B (approx)                               │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 2.3s [min: 13ms, max: 5.1s, s.d.: 1878ms] │
+└──────────────────────────────────────────────────────────────────┘

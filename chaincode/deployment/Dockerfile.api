@@ -1,0 +1,12 @@
+# Builds the REST wrapper (cmd/api) for the application layer container
+# referenced in docker-compose.reference.yml. Build context is the
+# chaincode/ directory (see docker-compose.reference.yml's `context: ../..`).
+FROM golang:1.24 AS build
+WORKDIR /src
+COPY . .
+RUN go build -o /out/api ./cmd/api
+
+FROM debian:bookworm-slim
+COPY --from=build /out/api /usr/local/bin/api
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/api"]

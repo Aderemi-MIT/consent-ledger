@@ -1,0 +1,123 @@
+{
+  "info": {
+    "name": "Consent-and-Access-Control Chaincode (Section 3.5)",
+    "description": "Exercises the five chaincode functions via the REST wrapper in cmd/api. Matches the request/response transcript captured in test_evidence.md. Point {{baseUrl}} at the Fabric-Gateway-backed deployment once Steps 3-4 of deployment/README.md are complete. Request IDs include {{runId}}, which request 1 sets to the current UTC time, because a real ledger keeps every request ID and rejects duplicates; run the requests in order (or the whole collection) so each run uses fresh IDs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "runId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Grant Consent",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Fresh request IDs for this run, e.g. req-20261013T171500-1001.",
+              "pm.collectionVariables.set('runId', new Date().toISOString().replace(/[-:]/g, '').slice(0, 15));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/consent/grant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\",\n  \"scope\": \"full-record\",\n  \"expiry\": \"2026-12-31T00:00:00Z\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Request Access",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/access/request",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestId\": \"req-{{runId}}-1001\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Verify And Grant Access",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/access/verify",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestId\": \"req-{{runId}}-1001\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Get Audit Log Entry",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/access/log?requestId=req-{{runId}}-1001"
+      }
+    },
+    {
+      "name": "5. Revoke Consent",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/consent/revoke",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6. Request Access (after revoke)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/access/request",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestId\": \"req-{{runId}}-1002\",\n  \"providerId\": \"provider-lab-B\",\n  \"patientId\": \"patient-002\",\n  \"recordReference\": \"ehr-ref-55A\"\n}"
+        }
+      }
+    },
+    {
+      "name": "7. Verify And Grant Access (expect DENIED)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/access/verify",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestId\": \"req-{{runId}}-1002\"\n}"
+        }
+      }
+    },
+    {
+      "name": "8. Get Audit Log Entry (after revoke, hash-chained to #4)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/access/log?requestId=req-{{runId}}-1002"
+      }
+    },
+    {
+      "name": "9. Verify Unknown Request (expect 400 error)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/access/verify",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestId\": \"does-not-exist\"\n}"
+        }
+      }
+    }
+  ]
+}

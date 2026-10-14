@@ -1,0 +1,31 @@
+# Go build output
+/chaincode/api
+/chaincode/chaincode
+*.exe
+*.test
+*.out
+
+# Chaincode packages built by `peer lifecycle chaincode package`
+*.tar.gz
+
+# Vendored Go modules (network.sh deployCC creates this)
+vendor/
+
+# Node / React (later phases)
+node_modules/
+dist/
+build/
+
+# Secrets and local config. Fabric crypto material lives in WSL under
+# ~/fabric and must never be copied into this repo.
+.env
+.env.*
+!.env.example
+*.pem
+*_sk
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
