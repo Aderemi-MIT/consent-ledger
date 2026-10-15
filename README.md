@@ -89,6 +89,7 @@ By default it connects to `localhost:7051` as the Org1 Admin, using the crypto m
 
 | Method | Route | Body / query |
 |---|---|---|
+| GET | `/` | Status: what the API is connected to, whether the chaincode answers (200 `ok` or 503), and the routes below |
 | POST | `/consent/grant` | `patientId, providerId, scope, expiry` |
 | POST | `/consent/revoke` | `patientId, providerId` |
 | POST | `/access/request` | `requestId, providerId, patientId, recordReference` |

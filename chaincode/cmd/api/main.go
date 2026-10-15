@@ -236,6 +236,43 @@ func handleGetLog(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, entry)
 }
 
+// routes lists the API's endpoints for the status reply at "/".
+var routes = []string{
+	"POST /consent/grant   {patientId, providerId, scope, expiry}",
+	"POST /consent/revoke  {patientId, providerId}",
+	"POST /access/request  {requestId, providerId, patientId, recordReference}",
+	"POST /access/verify   {requestId}",
+	"GET  /access/log?requestId=...",
+}
+
+// statusHandler serves GET / with what the API is connected to and whether
+// the chaincode currently answers. The probe evaluates GetRequest for an
+// empty ID: the chaincode rejects that with "not found", which shows the
+// peer and chaincode are up without reading or writing any real record.
+func statusHandler(channel, chaincode, peer, mspID string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fabric := map[string]string{
+			"channel":   channel,
+			"chaincode": chaincode,
+			"peer":      peer,
+			"identity":  mspID + " Admin",
+		}
+		code, status := http.StatusOK, "ok"
+		if _, err := contract.EvaluateTransaction("GetRequest", ""); err != nil {
+			if _, ok := chaincodeError(err); !ok {
+				code, status = http.StatusServiceUnavailable, "fabric unreachable"
+				fabric["error"] = err.Error()
+			}
+		}
+		writeJSON(w, code, map[string]interface{}{
+			"service": "consentledger-api",
+			"status":  status,
+			"fabric":  fabric,
+			"routes":  routes,
+		})
+	}
+}
+
 var errNotFound = &notFoundError{}
 
 type notFoundError struct{}
@@ -363,6 +400,8 @@ func main() {
 	mux.HandleFunc("/access/request", handleRequestAccess)
 	mux.HandleFunc("/access/verify", handleVerifyAndGrantAccess)
 	mux.HandleFunc("/access/log", handleGetLog)
+	// "{$}" matches "/" exactly, so other unknown paths still return 404.
+	mux.HandleFunc("GET /{$}", statusHandler(channelName, chaincodeName, peerEndpoint, mspID))
 
 	log.Printf("consent-access API listening on %s (chaincode %s on channel %s via %s as %s Admin)",
 		addr, chaincodeName, channelName, peerEndpoint, mspID)
