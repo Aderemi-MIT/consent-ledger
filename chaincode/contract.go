@@ -72,13 +72,14 @@ func (s *SmartContract) RevokeConsent(ctx contractapi.TransactionContextInterfac
 	return finish(l, RevokeConsent(l, patientID, providerID))
 }
 
-// RequestAccess records a provider's PENDING request for a record.
-func (s *SmartContract) RequestAccess(ctx contractapi.TransactionContextInterface, requestID, providerID, patientID, recordReference string) error {
+// RequestAccess records a provider's PENDING request for a record, with the
+// SHA-256 (hex) of the record's off-chain content.
+func (s *SmartContract) RequestAccess(ctx contractapi.TransactionContextInterface, requestID, providerID, patientID, recordReference, contentHash string) error {
 	l, now, err := txContext(ctx)
 	if err != nil {
 		return err
 	}
-	return finish(l, RequestAccess(l, requestID, providerID, patientID, recordReference, now))
+	return finish(l, RequestAccess(l, requestID, providerID, patientID, recordReference, contentHash, now))
 }
 
 // VerifyAndGrantAccess resolves a pending request against current consent.

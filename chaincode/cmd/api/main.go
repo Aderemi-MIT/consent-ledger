@@ -8,9 +8,14 @@
 // the gateway peer only. The HTTP routes and JSON shapes are the same as
 // the earlier MockLedger-backed version, so
 // deployment/consentaccess.postman_collection.json works unchanged.
+// Clinical records are served from the PostgreSQL off-chain store; see
+// records.go.
 //
-// Configuration (environment variables, all optional):
+// Configuration (environment variables; all optional except DATABASE_URL):
 //
+//	DATABASE_URL      PostgreSQL off-chain store, e.g.
+//	                  postgres://consentaccess:...@localhost:5433/offchain_records
+//	                  (see deployment/.env.example)
 //	FABRIC_ORG1_DIR   Org1 crypto material; default
 //	                  ~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com
 //	PEER_ENDPOINT     gateway peer address; default localhost:7051
@@ -24,6 +29,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -42,6 +48,7 @@ import (
 	"github.com/hyperledger/fabric-gateway/pkg/hash"
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
 	"github.com/hyperledger/fabric-protos-go-apiv2/gateway"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
@@ -160,7 +167,23 @@ func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := submit(w, "RequestAccess", req.RequestID, req.ProviderID, req.PatientID, req.RecordReference); err != nil {
+	// The ledger records the hash of the record's current content, so the
+	// version accessed can be proven later.
+	owner, contentHash, err := recordHash(r.Context(), req.RecordReference)
+	if errors.Is(err, errRecordNotFound) {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("record %s not found in the off-chain store", req.RecordReference))
+		return
+	}
+	if err != nil {
+		log.Printf("off-chain store query failed: %v", err)
+		writeErr(w, http.StatusBadGateway, errors.New("off-chain store unavailable"))
+		return
+	}
+	if owner != req.PatientID {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("record %s does not belong to patient %s", req.RecordReference, req.PatientID))
+		return
+	}
+	if _, err := submit(w, "RequestAccess", req.RequestID, req.ProviderID, req.PatientID, req.RecordReference, contentHash); err != nil {
 		writeFabricErr(w, err)
 		return
 	}
@@ -243,6 +266,7 @@ var routes = []string{
 	"POST /access/request  {requestId, providerId, patientId, recordReference}",
 	"POST /access/verify   {requestId}",
 	"GET  /access/log?requestId=...",
+	"GET  /access/record?requestId=...  (the off-chain record, once access is GRANTED)",
 }
 
 // statusHandler serves GET / with what the API is connected to and whether
@@ -264,11 +288,17 @@ func statusHandler(channel, chaincode, peer, mspID string) http.HandlerFunc {
 				fabric["error"] = err.Error()
 			}
 		}
+		database := map[string]string{"status": "ok"}
+		if err := db.Ping(r.Context()); err != nil {
+			code, status = http.StatusServiceUnavailable, "off-chain store unreachable"
+			database = map[string]string{"status": "unreachable", "error": err.Error()}
+		}
 		writeJSON(w, code, map[string]interface{}{
-			"service": "consentledger-api",
-			"status":  status,
-			"fabric":  fabric,
-			"routes":  routes,
+			"service":  "consentledger-api",
+			"status":   status,
+			"fabric":   fabric,
+			"database": database,
+			"routes":   routes,
 		})
 	}
 }
@@ -394,12 +424,26 @@ func main() {
 
 	contract = gw.GetNetwork(channelName).GetContract(chaincodeName)
 
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is not set (see deployment/.env.example)")
+	}
+	db, err = pgxpool.New(context.Background(), databaseURL)
+	if err != nil {
+		log.Fatalf("configuring off-chain store: %v", err)
+	}
+	defer db.Close()
+	if err := db.Ping(context.Background()); err != nil {
+		log.Fatalf("connecting to off-chain store: %v", err)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/consent/grant", handleGrantConsent)
 	mux.HandleFunc("/consent/revoke", handleRevokeConsent)
 	mux.HandleFunc("/access/request", handleRequestAccess)
 	mux.HandleFunc("/access/verify", handleVerifyAndGrantAccess)
 	mux.HandleFunc("/access/log", handleGetLog)
+	mux.HandleFunc("GET /access/record", handleGetRecord)
 	// "{$}" matches "/" exactly, so other unknown paths still return 404.
 	mux.HandleFunc("GET /{$}", statusHandler(channelName, chaincodeName, peerEndpoint, mspID))
 

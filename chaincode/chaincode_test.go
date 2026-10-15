@@ -1,13 +1,24 @@
 package consentaccess
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
 
 // Fixed reference time so tests are deterministic.
 var baseTime = time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+
+// testContentHash stands in for the SHA-256 of an off-chain record's content.
+var testContentHash = sha256Hex("synthetic record content")
+
+func sha256Hex(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
 
 // ---------------------------------------------------------------------
 // 1. GrantConsent
@@ -66,7 +77,7 @@ func TestEndToEnd_ValidConsent_RequestIsGranted(t *testing.T) {
 	expiry := baseTime.Add(48 * time.Hour)
 
 	mustNoErr(t, GrantConsent(l, "patient-1", "provider-1", "lab-results", expiry, baseTime))
-	mustNoErr(t, RequestAccess(l, "req-1", "provider-1", "patient-1", "record-ref-001", baseTime.Add(time.Hour)))
+	mustNoErr(t, RequestAccess(l, "req-1", "provider-1", "patient-1", "record-ref-001", testContentHash, baseTime.Add(time.Hour)))
 
 	granted, recordRef, err := VerifyAndGrantAccess(l, "req-1", baseTime.Add(time.Hour))
 	if err != nil {
@@ -87,7 +98,7 @@ func TestEndToEnd_ValidConsent_RequestIsGranted(t *testing.T) {
 
 func TestVerifyAndGrantAccess_NoConsentOnFile_Denied(t *testing.T) {
 	l := NewMockLedger()
-	mustNoErr(t, RequestAccess(l, "req-2", "provider-1", "patient-1", "record-ref-002", baseTime))
+	mustNoErr(t, RequestAccess(l, "req-2", "provider-1", "patient-1", "record-ref-002", testContentHash, baseTime))
 
 	granted, _, err := VerifyAndGrantAccess(l, "req-2", baseTime)
 	if err != nil {
@@ -107,7 +118,7 @@ func TestVerifyAndGrantAccess_ExpiredConsent_Denied(t *testing.T) {
 	l := NewMockLedger()
 	expiry := baseTime.Add(1 * time.Hour)
 	mustNoErr(t, GrantConsent(l, "patient-1", "provider-1", "lab-results", expiry, baseTime))
-	mustNoErr(t, RequestAccess(l, "req-3", "provider-1", "patient-1", "record-ref-003", baseTime))
+	mustNoErr(t, RequestAccess(l, "req-3", "provider-1", "patient-1", "record-ref-003", testContentHash, baseTime))
 
 	// Request is verified two hours later, after the consent's expiry.
 	afterExpiry := baseTime.Add(2 * time.Hour)
@@ -130,9 +141,25 @@ func TestVerifyAndGrantAccess_UnknownRequest_Errors(t *testing.T) {
 
 func TestRequestAccess_DuplicateRequestID_Rejected(t *testing.T) {
 	l := NewMockLedger()
-	mustNoErr(t, RequestAccess(l, "req-dup", "provider-1", "patient-1", "ref", baseTime))
-	if err := RequestAccess(l, "req-dup", "provider-1", "patient-1", "ref", baseTime); err == nil {
+	mustNoErr(t, RequestAccess(l, "req-dup", "provider-1", "patient-1", "ref", testContentHash, baseTime))
+	if err := RequestAccess(l, "req-dup", "provider-1", "patient-1", "ref", testContentHash, baseTime); err == nil {
 		t.Fatalf("expected an error submitting a request with a requestID that already exists")
+	}
+}
+
+func TestRequestAccess_RecordsContentHash_RejectsInvalidHash(t *testing.T) {
+	l := NewMockLedger()
+	mustNoErr(t, RequestAccess(l, "req-hash", "provider-1", "patient-1", "ref", testContentHash, baseTime))
+	req, found, err := GetRequest(l, "req-hash")
+	mustNoErr(t, err)
+	if !found || req.ContentHash != testContentHash {
+		t.Fatalf("expected the request to store content hash %s, got %+v", testContentHash, req)
+	}
+
+	for _, bad := range []string{"", "not-a-hash", strings.ToUpper(testContentHash), testContentHash[:63]} {
+		if err := RequestAccess(l, "req-bad-"+bad, "provider-1", "patient-1", "ref", bad, baseTime); err == nil {
+			t.Fatalf("expected content hash %q to be rejected", bad)
+		}
 	}
 }
 
@@ -146,7 +173,7 @@ func TestRevokeConsent_SubsequentRequestIsAutoDenied(t *testing.T) {
 	mustNoErr(t, GrantConsent(l, "patient-1", "provider-1", "lab-results", expiry, baseTime))
 
 	// First request, before revocation: should be granted.
-	mustNoErr(t, RequestAccess(l, "req-before-revoke", "provider-1", "patient-1", "ref-1", baseTime.Add(time.Hour)))
+	mustNoErr(t, RequestAccess(l, "req-before-revoke", "provider-1", "patient-1", "ref-1", testContentHash, baseTime.Add(time.Hour)))
 	granted, _, err := VerifyAndGrantAccess(l, "req-before-revoke", baseTime.Add(time.Hour))
 	mustNoErr(t, err)
 	if !granted {
@@ -157,7 +184,7 @@ func TestRevokeConsent_SubsequentRequestIsAutoDenied(t *testing.T) {
 	mustNoErr(t, RevokeConsent(l, "patient-1", "provider-1"))
 
 	// Second request, after revocation but still before the original expiry: should be denied.
-	mustNoErr(t, RequestAccess(l, "req-after-revoke", "provider-1", "patient-1", "ref-2", baseTime.Add(2*time.Hour)))
+	mustNoErr(t, RequestAccess(l, "req-after-revoke", "provider-1", "patient-1", "ref-2", testContentHash, baseTime.Add(2*time.Hour)))
 	granted, _, err = VerifyAndGrantAccess(l, "req-after-revoke", baseTime.Add(2*time.Hour))
 	mustNoErr(t, err)
 	if granted {

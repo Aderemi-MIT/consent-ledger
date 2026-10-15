@@ -25,9 +25,12 @@ CREATE TABLE clinical_records (
     patient_id          TEXT NOT NULL REFERENCES patients(patient_id),
     record_type         TEXT NOT NULL,      -- e.g. 'lab-result', 'prescription', 'clinical-note'
     content              JSONB NOT NULL,     -- synthetic clinical content only
-    content_hash         TEXT NOT NULL,      -- SHA-256 of `content`, mirrored
-                                              -- on-chain so a later access can be
-                                              -- proven to match this exact version
+    content_hash         TEXT NOT NULL,      -- SHA-256 (lowercase hex) of
+                                              -- content::text, PostgreSQL's canonical
+                                              -- JSONB text form. Mirrored on-chain by
+                                              -- RequestAccess (AccessRequest.contentHash)
+                                              -- so a later access can be proven to
+                                              -- match this exact version
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

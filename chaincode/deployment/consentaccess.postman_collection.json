@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Consent-and-Access-Control Chaincode (Section 3.5)",
-    "description": "Exercises the five chaincode functions via the REST wrapper in cmd/api. Matches the request/response transcript captured in test_evidence.md. Point {{baseUrl}} at the Fabric-Gateway-backed deployment once Steps 3-4 of deployment/README.md are complete. Request IDs include {{runId}}, which request 1 sets to the current UTC time, because a real ledger keeps every request ID and rejects duplicates; run the requests in order (or the whole collection) so each run uses fresh IDs.",
+    "description": "Exercises the five chaincode functions via the REST wrapper in cmd/api, plus the off-chain record route (/access/record, requests 4a, 10 and 11), which releases a PostgreSQL record only for a GRANTED request with active consent and a content hash matching the ledger. Matches the request/response transcript captured in test_evidence.md. Point {{baseUrl}} at the Fabric-Gateway-backed deployment once Steps 3-4 of deployment/README.md are complete. Request IDs include {{runId}}, which request 1 sets to the current UTC time, because a real ledger keeps every request ID and rejects duplicates; run the requests in order (or the whole collection) so each run uses fresh IDs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -65,6 +65,25 @@
       }
     },
     {
+      "name": "4a. Fetch Granted Record (off-chain, hash-verified)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('record released for a GRANTED request', () => pm.response.to.have.status(200));",
+              "pm.test('content hash matches the ledger', () => pm.expect(pm.response.json().hashVerified).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/access/record?requestId=req-{{runId}}-1001"
+      }
+    },
+    {
       "name": "5. Revoke Consent",
       "request": {
         "method": "POST",
@@ -117,6 +136,42 @@
           "mode": "raw",
           "raw": "{\n  \"requestId\": \"does-not-exist\"\n}"
         }
+      }
+    },
+    {
+      "name": "10. Fetch Record from #4a After Revoke (expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('revoking consent cuts off a previously granted request', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/access/record?requestId=req-{{runId}}-1001"
+      }
+    },
+    {
+      "name": "11. Fetch Record for DENIED Request (expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('no record for a DENIED request', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/access/record?requestId=req-{{runId}}-1002"
       }
     }
   ]

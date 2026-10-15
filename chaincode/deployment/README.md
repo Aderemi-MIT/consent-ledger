@@ -52,10 +52,37 @@ captured for the dissertation.
    request/response shapes stay exactly as already tested in
    `test_evidence.md` — only the backing ledger changes.
 
-5. **Set up PostgreSQL** for the off-chain layer using `postgres_schema.sql`
-   in this folder, and seed it with synthetic patient/clinical records per
-   Section 1.4's narrowed scope (synthetic data only, never real patient
-   data).
+5. **Set up PostgreSQL** for the off-chain layer, using `postgres_schema.sql`
+   and the synthetic seed data in `postgres_seed.sql` (Section 1.4: synthetic
+   data only, never real patient data). From this folder:
+
+   ```
+   cp .env.example .env        # then set a password in both lines of .env
+   set -a; . ./.env; set +a
+   docker run -d --name consentledger-db --restart unless-stopped \
+     -e POSTGRES_DB=offchain_records -e POSTGRES_USER=consentaccess \
+     -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+     -p 127.0.0.1:5433:5432 -v consentledger-pgdata:/var/lib/postgresql/data \
+     postgres:16.4-alpine
+   docker exec -i consentledger-db psql -v ON_ERROR_STOP=1 -U consentaccess -d offchain_records < postgres_schema.sql
+   docker exec -i consentledger-db psql -v ON_ERROR_STOP=1 -U consentaccess -d offchain_records < postgres_seed.sql
+   ```
+
+   Port 5433 avoids clashing with another PostgreSQL on 5432. The REST API
+   reads `DATABASE_URL` from the environment (`set -a; . deployment/.env;
+   set +a` before `go run ./cmd/api`). Each record's `content_hash` is the
+   SHA-256 of its content; the API records it on the ledger with
+   `RequestAccess` (chaincode v1.1) and recomputes it before releasing the
+   record through `GET /access/record`, so an off-chain edit is refused
+   with HTTP 409.
+
+   Chaincode v1.1 adds that hash argument to `RequestAccess`. On a network
+   already running v1.0 it is an upgrade: package with label
+   `consentaccess_1.1`, install on both peers, then `approveformyorg` and
+   `commit` with `--version 1.1 --sequence 2`. Installing can take several
+   minutes per peer; if the CLI disconnects with `too_many_pings`, the peer
+   usually finishes the build anyway, so check with `peer lifecycle
+   chaincode queryinstalled` before retrying.
 
 6. **Re-run the Postman collection** (`consentaccess.postman_collection.json`)
    against the live network and capture the responses/screenshots — this

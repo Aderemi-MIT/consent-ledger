@@ -70,12 +70,31 @@ func RevokeConsent(l Ledger, patientID, providerID string) error {
 	return nil
 }
 
+// isSHA256Hex reports whether s is a lowercase hex-encoded SHA-256 digest.
+func isSHA256Hex(s string) bool {
+	if len(s) != sha256.Size*2 {
+		return false
+	}
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 // RequestAccess logs a provider's request to access a specific off-chain
-// record reference. The request starts in PENDING status until
-// VerifyAndGrantAccess resolves it.
-func RequestAccess(l Ledger, requestID, providerID, patientID, recordReference string, now time.Time) error {
+// record reference, together with the SHA-256 hash of that record's content
+// as the application layer read it from the off-chain store. The request
+// starts in PENDING status until VerifyAndGrantAccess resolves it. The hash
+// is what lets the record later be proven to be the exact version accessed
+// (Section 3.4.4): the record itself never reaches the ledger.
+func RequestAccess(l Ledger, requestID, providerID, patientID, recordReference, contentHash string, now time.Time) error {
 	if requestID == "" {
 		return fmt.Errorf("requestID is required")
+	}
+	if !isSHA256Hex(contentHash) {
+		return fmt.Errorf("contentHash must be a lowercase hex SHA-256 digest")
 	}
 	if _, exists := l.GetState(requestKey(requestID)); exists {
 		return fmt.Errorf("request %s already exists", requestID)
@@ -85,6 +104,7 @@ func RequestAccess(l Ledger, requestID, providerID, patientID, recordReference s
 		ProviderID:      providerID,
 		PatientID:       patientID,
 		RecordReference: recordReference,
+		ContentHash:     contentHash,
 		Status:          StatusPending,
 		RequestedAt:     now,
 	}

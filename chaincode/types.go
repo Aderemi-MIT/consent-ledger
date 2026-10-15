@@ -24,12 +24,16 @@ const (
 )
 
 // AccessRequest is the on-chain record of a provider's request to access a
-// specific off-chain record reference.
+// specific off-chain record reference. ContentHash is the SHA-256 (hex) of
+// the referenced off-chain record's content at the time of the request, so
+// it can be proven later which version of the record was accessed
+// (Section 3.4.4).
 type AccessRequest struct {
 	RequestID       string        `json:"requestId"`
 	ProviderID      string        `json:"providerId"`
 	PatientID       string        `json:"patientId"`
 	RecordReference string        `json:"recordReference"`
+	ContentHash     string        `json:"contentHash"`
 	Status          RequestStatus `json:"status"`
 	RequestedAt     time.Time     `json:"requestedAt"`
 }
