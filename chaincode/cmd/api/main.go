@@ -77,6 +77,29 @@ func chaincodeError(err error) (msg string, ok bool) {
 	return "", false
 }
 
+// submit submits a transaction and waits for it to commit, like
+// contract.SubmitTransaction, and also records the transaction ID and the
+// block it was committed in: as an "X-Fabric-Tx" response header (one per
+// transaction, so the JSON body is unchanged) and in the server log. This
+// is the evidence that each call is a real ledger transaction.
+func submit(w http.ResponseWriter, name string, args ...string) ([]byte, error) {
+	result, commit, err := contract.SubmitAsync(name, client.WithArguments(args...))
+	if err != nil {
+		return nil, err
+	}
+	st, err := commit.Status()
+	if err != nil {
+		return nil, err
+	}
+	record := fmt.Sprintf("%s tx=%s block=%d status=%s", name, st.TransactionID, st.BlockNumber, st.Code)
+	w.Header().Add("X-Fabric-Tx", record)
+	log.Print(record)
+	if !st.Successful {
+		return nil, fmt.Errorf("transaction %s failed to commit with status %s", st.TransactionID, st.Code)
+	}
+	return result, nil
+}
+
 // writeFabricErr reports a chaincode rejection as 400, matching the
 // MockLedger-backed API, and any other failure to reach or use the
 // network as 502.
@@ -101,7 +124,7 @@ func handleGrantConsent(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := contract.SubmitTransaction("GrantConsent", req.PatientID, req.ProviderID, req.Scope, req.Expiry.Format(time.RFC3339Nano)); err != nil {
+	if _, err := submit(w, "GrantConsent", req.PatientID, req.ProviderID, req.Scope, req.Expiry.Format(time.RFC3339Nano)); err != nil {
 		writeFabricErr(w, err)
 		return
 	}
@@ -118,7 +141,7 @@ func handleRevokeConsent(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := contract.SubmitTransaction("RevokeConsent", req.PatientID, req.ProviderID); err != nil {
+	if _, err := submit(w, "RevokeConsent", req.PatientID, req.ProviderID); err != nil {
 		writeFabricErr(w, err)
 		return
 	}
@@ -137,7 +160,7 @@ func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := contract.SubmitTransaction("RequestAccess", req.RequestID, req.ProviderID, req.PatientID, req.RecordReference); err != nil {
+	if _, err := submit(w, "RequestAccess", req.RequestID, req.ProviderID, req.PatientID, req.RecordReference); err != nil {
 		writeFabricErr(w, err)
 		return
 	}
@@ -148,7 +171,7 @@ func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
 //
 // VerifyAndGrantAccess updates the request's status on the ledger, so it
 // is submitted like the other state-changing calls. It and the following
-// LogAccessEvent are separate transactions: SubmitTransaction waits for
+// LogAccessEvent are separate transactions: submit waits for
 // each to commit, so the log entry is only written once the verification
 // outcome is final.
 func handleVerifyAndGrantAccess(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +182,7 @@ func handleVerifyAndGrantAccess(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	resultJSON, err := contract.SubmitTransaction("VerifyAndGrantAccess", req.RequestID)
+	resultJSON, err := submit(w, "VerifyAndGrantAccess", req.RequestID)
 	if err != nil {
 		writeFabricErr(w, err)
 		return
@@ -173,7 +196,7 @@ func handleVerifyAndGrantAccess(w http.ResponseWriter, r *http.Request) {
 	if result.Granted {
 		outcome = "GRANTED"
 	}
-	if _, err := contract.SubmitTransaction("LogAccessEvent", req.RequestID, outcome); err != nil {
+	if _, err := submit(w, "LogAccessEvent", req.RequestID, outcome); err != nil {
 		if msg, ok := chaincodeError(err); ok {
 			err = errors.New(msg)
 		}

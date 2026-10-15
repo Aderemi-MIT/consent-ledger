@@ -1,0 +1,195 @@
+[
+ {
+  "number": 33,
+  "header_hash": "136595aaf8d7fc0ab5522ccceb4b7f59331dc58646da30c1f9a911ee9a76de0d",
+  "previous_hash": "bd5ef1fbd2fbad11efc95ff5ce578c872e3d4b7585a5390851f6e1001571df0c",
+  "data_hash": "ccf851bea95ec11bbed6842fdc4f8918de756aeb6111a69e0fff6f3ce8bfeef1",
+  "links_to_previous": null,
+  "txs": [
+   {
+    "tx_id": "71904f9fb74de2d56c4407f5c7d7918085b8cce481c8181b18bd65cc233e9d94",
+    "timestamp": "2026-10-13T17:05:06.421877490Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "LogAccessEvent",
+    "args": [
+     "req-20261013T170436-1002",
+     "DENIED"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 34,
+  "header_hash": "89caf17bd7afd909d74a148e17e017b65f714d0222f897c536360b5e6c77e05c",
+  "previous_hash": "136595aaf8d7fc0ab5522ccceb4b7f59331dc58646da30c1f9a911ee9a76de0d",
+  "data_hash": "69bc49ff166c0b4b3cfb4ed97be34337c67902a9445e2c5b2684d00098ae201e",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "73945edb23fa3e48520737da327a7ccb5485adf423cd7c546b95a993b675cfd3",
+    "timestamp": "2026-10-15T08:37:37.998750430Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "GrantConsent",
+    "args": [
+     "patient-002",
+     "provider-lab-B",
+     "full-record",
+     "2026-12-31T00:00:00Z"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 35,
+  "header_hash": "691202634e4e712d1a9eec8806a9f12b80873c7f5ea73efa43b40568dae8b4b6",
+  "previous_hash": "89caf17bd7afd909d74a148e17e017b65f714d0222f897c536360b5e6c77e05c",
+  "data_hash": "6ea6e133813b3b9651016c7bb3fd92beac7f98c053d1f20374a4c24bf44a6f97",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "d29f35232f9bce5ad26930eec1a668a62bd289cde17021664e9636b2f3d27adc",
+    "timestamp": "2026-10-15T08:37:43.352228598Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "RequestAccess",
+    "args": [
+     "req-20261015T083729-1001",
+     "provider-lab-B",
+     "patient-002",
+     "ehr-ref-55A"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 36,
+  "header_hash": "b1bcd052392851c1a656083247e32bc24a390b1ac07e9c23f195b8ab83deccbb",
+  "previous_hash": "691202634e4e712d1a9eec8806a9f12b80873c7f5ea73efa43b40568dae8b4b6",
+  "data_hash": "5818ab407f796f7e21c26a0f43dcc4977da65ba017a4f0f2ead984f6e45c9095",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "4c38495b91ee83f721d797561ede5b4ec4e39fa47265f7957152deaebc6bbb82",
+    "timestamp": "2026-10-15T08:37:45.831256917Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "VerifyAndGrantAccess",
+    "args": [
+     "req-20261015T083729-1001"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 37,
+  "header_hash": "c710e90bc09429b71b7b475dd8609b1f9343a8933ebd8abcfa1ac97a6451896a",
+  "previous_hash": "b1bcd052392851c1a656083247e32bc24a390b1ac07e9c23f195b8ab83deccbb",
+  "data_hash": "10227a71e353a1f872b06bec976bc8436dbbda85a1acea747406bc47028e53ac",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "d38a321fca9202b17da05d195d36730089f77bd0ece3f5d2f100f0287d353974",
+    "timestamp": "2026-10-15T08:37:48.137939420Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "LogAccessEvent",
+    "args": [
+     "req-20261015T083729-1001",
+     "GRANTED"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 38,
+  "header_hash": "091e34874ee7d0ffd16a508e85c1e1605179ff65b2a038944b69e0d73cc57393",
+  "previous_hash": "c710e90bc09429b71b7b475dd8609b1f9343a8933ebd8abcfa1ac97a6451896a",
+  "data_hash": "390a2e43b8f170c7c5afbee9d20133ec6e026ad854cd10128084f84e5f9b208e",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "7c34264bb298d8e6312ccb9a8b59baea4d9f83d755a37d945c77f4abd79a28a8",
+    "timestamp": "2026-10-15T08:37:51.034826241Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "RevokeConsent",
+    "args": [
+     "patient-002",
+     "provider-lab-B"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 39,
+  "header_hash": "d426b1fd7f67b60fc63295fc24237737e6a72e5efacca2ad0aab4babfbfc3e14",
+  "previous_hash": "091e34874ee7d0ffd16a508e85c1e1605179ff65b2a038944b69e0d73cc57393",
+  "data_hash": "af973d585dc121405c4f2cfc2d9ec8bd24b4c04f40d2582f368c17af1188699e",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "cab5b808c074d8c251b0451349730a8355ce8d3f0ce6e4881330c404ddae5cf9",
+    "timestamp": "2026-10-15T08:37:53.740970125Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "RequestAccess",
+    "args": [
+     "req-20261015T083729-1002",
+     "provider-lab-B",
+     "patient-002",
+     "ehr-ref-55A"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 40,
+  "header_hash": "df57ad032ae8c540d146a0154e706ad47dee71e00c632ec4fda0a7726a34a11f",
+  "previous_hash": "d426b1fd7f67b60fc63295fc24237737e6a72e5efacca2ad0aab4babfbfc3e14",
+  "data_hash": "52bc5d8a115f75266e25e01808a2598346a9c17571783ffe6f6b58fa3e632e9e",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "3cc3220446016ade6c940278602c9b7cb2045d9d6b7ebfefb8c35f99c7d60c37",
+    "timestamp": "2026-10-15T08:37:56.332762970Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "VerifyAndGrantAccess",
+    "args": [
+     "req-20261015T083729-1002"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ },
+ {
+  "number": 41,
+  "header_hash": "518784c0f0082fa098bfd0fa5c97e7a7d247d1128e5b38a1672cdff59512e1e1",
+  "previous_hash": "df57ad032ae8c540d146a0154e706ad47dee71e00c632ec4fda0a7726a34a11f",
+  "data_hash": "c1f9da9c9c42650792461c86bb0c5b5c32b4fd7e3ccc1f890a263693b8f9fe0a",
+  "links_to_previous": true,
+  "txs": [
+   {
+    "tx_id": "720e4bd5cdd077b9a2dfeca15e718403a135c5b715809fb0faf0e8ff3dbea995",
+    "timestamp": "2026-10-15T08:37:58.890909397Z",
+    "creator": "Org1MSP",
+    "chaincode": "consentaccess",
+    "function": "LogAccessEvent",
+    "args": [
+     "req-20261015T083729-1002",
+     "DENIED"
+    ],
+    "validation": "VALID"
+   }
+  ]
+ }
+]

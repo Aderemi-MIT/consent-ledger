@@ -1,0 +1,197 @@
+{
+ "attempt_1_without_peer_restart": [
+  {
+   "entries": [
+    "seq 1: req-1001 GRANTED",
+    "seq 2: req-1002 DENIED",
+    "seq 3: req-20261013T170351-1001 GRANTED",
+    "seq 4: req-20261013T170351-1002 DENIED",
+    "seq 5: req-20261013T170436-1001 GRANTED",
+    "seq 6: req-20261013T170436-1002 DENIED",
+    "seq 7: req-20261015T083729-1001 GRANTED",
+    "seq 8: req-20261015T083729-1002 DENIED"
+   ],
+   "step": "Audit log order read from the ledger (sorted by seq)",
+   "at": "2026-10-15T08:41:05Z"
+  },
+  {
+   "result": "Error: endorsement failure during query. response: status:500 message:\"error in simulation: transaction returned with failure: [76de42cf] error sending TRANSACTION: rpc error: code = Unavailable desc = transport is closing\"",
+   "step": "Baseline VerifyLogChainIntegrity on org1 peer",
+   "at": "2026-10-15T08:41:05Z"
+  },
+  {
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}",
+   "step": "Baseline VerifyLogChainIntegrity on org2 peer",
+   "at": "2026-10-15T08:41:09Z"
+  },
+  {
+   "key": "LOG|req-20261015T083729-1001",
+   "document": {
+    "_id": "LOG|req-20261015T083729-1001",
+    "_rev": "1-9f960ae5f9356287718e7bcdbd72fb87",
+    "hash": "116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6",
+    "loggedAt": "2026-10-15T08:37:48.13793942Z",
+    "outcome": "GRANTED",
+    "prevHash": "9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590",
+    "requestId": "req-20261015T083729-1001",
+    "seq": 7,
+    "~version": "CgMBJQA="
+   },
+   "step": "Original document in couchdb0 (Org1 state DB)",
+   "at": "2026-10-15T08:41:09Z"
+  },
+  {
+   "couchdb_response": {
+    "ok": true,
+    "id": "LOG|req-20261015T083729-1001",
+    "rev": "2-5f41543e20c600ca9b90dda536422346"
+   },
+   "step": "TAMPER: outcome GRANTED -> DENIED written directly to couchdb0, stored hash left unchanged",
+   "at": "2026-10-15T08:41:09Z"
+  },
+  {
+   "result": "{\"requestId\":\"req-20261015T083729-1001\",\"outcome\":\"GRANTED\",\"loggedAt\":\"2026-10-15T08:37:48.13793942Z\",\"seq\":7,\"prevHash\":\"9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590\",\"hash\":\"116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6\"}",
+   "step": "GetLogEntry on org1 peer after tamper",
+   "at": "2026-10-15T08:41:14Z"
+  },
+  {
+   "result": "{\"requestId\":\"req-20261015T083729-1001\",\"outcome\":\"GRANTED\",\"loggedAt\":\"2026-10-15T08:37:48.13793942Z\",\"seq\":7,\"prevHash\":\"9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590\",\"hash\":\"116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6\"}",
+   "step": "GetLogEntry on org2 peer after tamper",
+   "at": "2026-10-15T08:41:14Z"
+  },
+  {
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}",
+   "step": "VerifyLogChainIntegrity on org1 peer after tamper",
+   "at": "2026-10-15T08:41:14Z"
+  },
+  {
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}",
+   "step": "VerifyLogChainIntegrity on org2 peer after tamper",
+   "at": "2026-10-15T08:41:15Z"
+  },
+  {
+   "couchdb_response": {
+    "ok": true,
+    "id": "LOG|req-20261015T083729-1001",
+    "rev": "3-5c288ee72c92e479571a78848fce860c"
+   },
+   "step": "RESTORE: original outcome written back to couchdb0",
+   "at": "2026-10-15T08:41:15Z"
+  },
+  {
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}",
+   "step": "VerifyLogChainIntegrity on org1 peer after restore",
+   "at": "2026-10-15T08:41:17Z"
+  },
+  {
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}",
+   "step": "VerifyLogChainIntegrity on org2 peer after restore",
+   "at": "2026-10-15T08:41:18Z"
+  },
+  {
+   "result": "{\"requestId\":\"req-20261015T083729-1001\",\"outcome\":\"GRANTED\",\"loggedAt\":\"2026-10-15T08:37:48.13793942Z\",\"seq\":7,\"prevHash\":\"9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590\",\"hash\":\"116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6\"}",
+   "step": "GetLogEntry on org1 peer after restore",
+   "at": "2026-10-15T08:41:18Z"
+  }
+ ],
+ "attempt_2_with_peer_restart": [
+  {
+   "step": "Request IDs passed to VerifyLogChainIntegrity (ledger order, seq 1-8)",
+   "at": "2026-10-15T08:42:06Z",
+   "ids": "[\"req-1001\", \"req-1002\", \"req-20261013T170351-1001\", \"req-20261013T170351-1002\", \"req-20261013T170436-1001\", \"req-20261013T170436-1002\", \"req-20261015T083729-1001\", \"req-20261015T083729-1002\"]"
+  },
+  {
+   "step": "Baseline: VerifyLogChainIntegrity on org1 peer",
+   "at": "2026-10-15T08:42:07Z",
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}"
+  },
+  {
+   "step": "Baseline: VerifyLogChainIntegrity on org2 peer",
+   "at": "2026-10-15T08:42:07Z",
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}"
+  },
+  {
+   "step": "Baseline: document in couchdb0 (Org1 state DB)",
+   "at": "2026-10-15T08:42:07Z",
+   "document": {
+    "_id": "LOG|req-20261015T083729-1001",
+    "_rev": "3-5c288ee72c92e479571a78848fce860c",
+    "hash": "116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6",
+    "loggedAt": "2026-10-15T08:37:48.13793942Z",
+    "outcome": "GRANTED",
+    "prevHash": "9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590",
+    "requestId": "req-20261015T083729-1001",
+    "seq": 7,
+    "~version": "CgMBJQA="
+   }
+  },
+  {
+   "step": "TAMPER: outcome GRANTED -> DENIED written directly to couchdb0; stored hash/prevHash left unchanged",
+   "at": "2026-10-15T08:42:08Z",
+   "couchdb_response": {
+    "ok": true,
+    "id": "LOG|req-20261015T083729-1001",
+    "rev": "4-d0a0ebd69834aa34d04b7b200297ba94"
+   }
+  },
+  {
+   "step": "After peer0.org1 restart: document in couchdb0",
+   "at": "2026-10-15T08:42:55Z",
+   "document": {
+    "_id": "LOG|req-20261015T083729-1001",
+    "_rev": "4-d0a0ebd69834aa34d04b7b200297ba94",
+    "hash": "116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6",
+    "loggedAt": "2026-10-15T08:37:48.13793942Z",
+    "outcome": "DENIED",
+    "prevHash": "9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590",
+    "requestId": "req-20261015T083729-1001",
+    "seq": 7,
+    "~version": "CgMBJQA="
+   }
+  },
+  {
+   "step": "After tamper: GetLogEntry on org1 peer",
+   "at": "2026-10-15T08:42:55Z",
+   "result": "{\"requestId\":\"req-20261015T083729-1001\",\"outcome\":\"DENIED\",\"loggedAt\":\"2026-10-15T08:37:48.13793942Z\",\"seq\":7,\"prevHash\":\"9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590\",\"hash\":\"116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6\"}"
+  },
+  {
+   "step": "After tamper: GetLogEntry on org2 peer",
+   "at": "2026-10-15T08:42:55Z",
+   "result": "{\"requestId\":\"req-20261015T083729-1001\",\"outcome\":\"GRANTED\",\"loggedAt\":\"2026-10-15T08:37:48.13793942Z\",\"seq\":7,\"prevHash\":\"9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590\",\"hash\":\"116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6\"}"
+  },
+  {
+   "step": "After tamper: VerifyLogChainIntegrity on org1 peer",
+   "at": "2026-10-15T08:42:56Z",
+   "result": "{\"intact\":false,\"brokenAt\":\"req-20261015T083729-1001\"}"
+  },
+  {
+   "step": "After tamper: VerifyLogChainIntegrity on org2 peer",
+   "at": "2026-10-15T08:42:56Z",
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}"
+  },
+  {
+   "step": "RESTORE: original document written back to couchdb0",
+   "at": "2026-10-15T08:43:13Z",
+   "couchdb_response": {
+    "ok": true,
+    "id": "LOG|req-20261015T083729-1001",
+    "rev": "5-852474c52abd114993c996a9889199c6"
+   }
+  },
+  {
+   "step": "After restore: VerifyLogChainIntegrity on org1 peer",
+   "at": "2026-10-15T08:43:48Z",
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}"
+  },
+  {
+   "step": "After restore: VerifyLogChainIntegrity on org2 peer",
+   "at": "2026-10-15T08:43:49Z",
+   "result": "{\"intact\":true,\"brokenAt\":\"\"}"
+  },
+  {
+   "step": "After restore: GetLogEntry on org1 peer",
+   "at": "2026-10-15T08:43:49Z",
+   "result": "{\"requestId\":\"req-20261015T083729-1001\",\"outcome\":\"GRANTED\",\"loggedAt\":\"2026-10-15T08:37:48.13793942Z\",\"seq\":7,\"prevHash\":\"9786e437852120174df087680fb868a30d671f8d722cb23cbce108ef6a153590\",\"hash\":\"116ac464665daa3fcef015e814278743bba8de83274f7fcf9817efe62f9720e6\"}"
+  }
+ ]
+}
