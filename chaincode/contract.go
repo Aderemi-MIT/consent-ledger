@@ -1,7 +1,9 @@
 package consentaccess
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
@@ -152,6 +154,71 @@ func (s *SmartContract) GetLogEntry(ctx contractapi.TransactionContextInterface,
 type IntegrityResult struct {
 	Intact   bool   `json:"intact"`
 	BrokenAt string `json:"brokenAt"`
+}
+
+// GetRequests returns every access request, newest first. The API filters
+// the list to what the caller may see.
+func (s *SmartContract) GetRequests(ctx contractapi.TransactionContextInterface) ([]*AccessRequest, error) {
+	// Every request key is "REQUEST|" + requestID; '}' is the byte after
+	// '|', so ["REQUEST|", "REQUEST}") covers exactly those keys.
+	it, err := ctx.GetStub().GetStateByRange(requestKey(""), "REQUEST}")
+	if err != nil {
+		return nil, err
+	}
+	defer it.Close()
+	reqs := []*AccessRequest{}
+	for it.HasNext() {
+		kv, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		var r AccessRequest
+		if err := json.Unmarshal(kv.Value, &r); err != nil {
+			return nil, fmt.Errorf("decoding request %s: %w", kv.Key, err)
+		}
+		reqs = append(reqs, &r)
+	}
+	sort.Slice(reqs, func(i, j int) bool { return reqs[i].RequestedAt.After(reqs[j].RequestedAt) })
+	return reqs, nil
+}
+
+// GetAuditLog returns every audit log entry, ordered by sequence number.
+func (s *SmartContract) GetAuditLog(ctx contractapi.TransactionContextInterface) ([]*AccessLogEntry, error) {
+	// Every log key is "LOG|" + requestID. '}' is the byte after '|', so
+	// ["LOG|", "LOG}") covers exactly the keys starting with "LOG|".
+	it, err := ctx.GetStub().GetStateByRange(logKey(""), "LOG}")
+	if err != nil {
+		return nil, err
+	}
+	defer it.Close()
+	entries := []*AccessLogEntry{}
+	for it.HasNext() {
+		kv, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		var e AccessLogEntry
+		if err := json.Unmarshal(kv.Value, &e); err != nil {
+			return nil, fmt.Errorf("decoding log entry %s: %w", kv.Key, err)
+		}
+		entries = append(entries, &e)
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Seq < entries[j].Seq })
+	return entries, nil
+}
+
+// VerifyAuditLog checks the whole audit log's hash chain, taking the order
+// of entries from their sequence numbers on the ledger.
+func (s *SmartContract) VerifyAuditLog(ctx contractapi.TransactionContextInterface) (*IntegrityResult, error) {
+	entries, err := s.GetAuditLog(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(entries))
+	for i, e := range entries {
+		ids[i] = e.RequestID
+	}
+	return s.VerifyLogChainIntegrity(ctx, ids)
 }
 
 // VerifyLogChainIntegrity recomputes the audit log's hash chain over the

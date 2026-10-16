@@ -18,22 +18,36 @@ Five chaincode functions, written in Go:
 | `VerifyAndGrantAccess` | Checks the request against current, unexpired, non-revoked consent and returns `GRANTED` or `DENIED` |
 | `LogAccessEvent` | Appends an audit entry, hash-linked to the previous one so that tampering with any entry is detectable |
 
-Read-only queries: `GetConsent`, `GetRequest`, `GetLogEntry` and `VerifyLogChainIntegrity` (recomputes the audit log's hash chain on-chain).
+Read-only queries: `GetConsent`, `GetRequest`, `GetRequests`, `GetLogEntry`, `GetAuditLog`, `VerifyLogChainIntegrity` and `VerifyAuditLog` (recompute the audit log's hash chain on-chain).
 
 The REST API releases an off-chain record only when its request was `GRANTED`, the consent is still active, and the record's content still matches the hash on the ledger.
 
 ## Architecture
 
 ```
-Postman / web app ──HTTP──▶ REST API (cmd/api) ──Fabric Gateway (gRPC/TLS)──▶ peer0.org1
-                                   │                                             │
-                                   │             chaincode "consentaccess" on mychannel
-                                   │             (2 orgs, 1 peer each, CouchDB, Raft orderer)
-                                   │
-                                   └──SQL──▶ PostgreSQL "offchain_records" (synthetic records)
+Web app (web/) ─┐
+                ├─HTTP + session cookie─▶ REST API (cmd/api) ──Fabric Gateway (gRPC/TLS)──▶ peer0.org1
+Postman ────────┘                              │                                             │
+                                               │             chaincode "consentaccess" on mychannel
+                                               │             (2 orgs, 1 peer each, CouchDB, Raft orderer)
+                                               │
+                                               └──SQL──▶ PostgreSQL "offchain_records"
+                                                         (synthetic records, accounts, sessions)
 ```
 
 The chaincode logic (`chaincode.go`) is written against a small `Ledger` interface, so the same functions run on Fabric (through `stub_ledger.go`) and in unit tests (through the in-memory `MockLedger`).
+
+## Accounts and access control
+
+Every route except the `/` health check needs a signed-in account. Accounts live in PostgreSQL ([postgres_auth.sql](chaincode/deployment/postgres_auth.sql)); passwords are bcrypt-hashed by `pgcrypto`, and sessions are random tokens in an HttpOnly cookie (only their SHA-256 is stored), valid for 8 hours. Five failed sign-ins for one username in five minutes are rate-limited.
+
+| Account type | Can |
+|---|---|
+| Patient | Grant and revoke **their own** consent; see their own records and the requests concerning them |
+| Provider (hospital, laboratory, pharmacy, insurer) | Request access **as itself**; verify and open only **its own** requests. The hospital also sees consent status for the records it holds |
+| Regulator | Read and verify the whole audit log; see every request, consent and record (metadata only) |
+
+The API enforces these rules on every call; the web app only shows each account the pages it can use. Ten synthetic walkthrough accounts are seeded (five patients, four providers, the regulator); they share one demo password, recorded in `postgres_auth.sql`.
 
 ## Repository layout
 
@@ -45,18 +59,20 @@ chaincode/
   contract.go              contractapi SmartContract exposing the functions
   chaincode_test.go        14 unit / functional tests
   cmd/chaincode/           Fabric chaincode entrypoint (package this)
-  cmd/api/                 REST API: Fabric Gateway calls (main.go) and
-                           off-chain record access (records.go)
-  deployment/              deployment notes, Postman collection, Postgres schema
-                           and synthetic seed data, live-network evidence files
+  cmd/api/                 REST API: Fabric Gateway calls (main.go), sign-in and
+                           roles (auth.go), off-chain records (records.go),
+                           read-only views for the web app (views.go)
+  deployment/              deployment notes, Postman collection, Postgres schema,
+                           seed data and accounts, live-network evidence files
   test_evidence.md         test results captured during development
   test_evidence_live.md    live-network results: transactions, blocks, tamper test
+web/                       React + TypeScript web app (Vite)
 ```
 
 ## Prerequisites
 
 - Docker Desktop (with WSL 2 on Windows)
-- Go 1.24+
+- Go 1.24+ and Node.js 20+
 - Hyperledger Fabric 2.5 samples, binaries and images (`fabric-samples`), with the test network running:
 
   ```bash
@@ -64,7 +80,7 @@ chaincode/
   ./network.sh up createChannel -ca
   ```
 
-- PostgreSQL 16 for the off-chain records, run in Docker with the schema and seed data loaded: step 5 of [chaincode/deployment/README.md](chaincode/deployment/README.md). Copy `chaincode/deployment/.env.example` to `.env` and set a password first.
+- PostgreSQL 16 for the off-chain records and accounts, run in Docker with the schema, seed data and accounts loaded: step 5 of [chaincode/deployment/README.md](chaincode/deployment/README.md). Copy `chaincode/deployment/.env.example` to `.env` and set a password first.
 
 ## Run the tests
 
@@ -75,13 +91,13 @@ go test ./...
 
 ## Deploy the chaincode
 
-The current version is **1.1, sequence 2**. From `fabric-samples/test-network`, with the Org1 Admin environment set (see Fabric's [test network tutorial](https://hyperledger-fabric.readthedocs.io/en/latest/test_network.html)):
+The current version is **1.3, sequence 4**. From `fabric-samples/test-network`, with the Org1 Admin environment set (see Fabric's [test network tutorial](https://hyperledger-fabric.readthedocs.io/en/latest/test_network.html)):
 
 ```bash
-peer lifecycle chaincode package consentaccess.tar.gz --path <repo>/chaincode/cmd/chaincode --lang golang --label consentaccess_1.1
+peer lifecycle chaincode package consentaccess.tar.gz --path <repo>/chaincode/cmd/chaincode --lang golang --label consentaccess_1.3
 peer lifecycle chaincode install consentaccess.tar.gz          # on peer0.org1 and peer0.org2
-peer lifecycle chaincode approveformyorg ... --name consentaccess --version 1.1 --sequence 2 --package-id <id>   # for each org
-peer lifecycle chaincode commit ... --name consentaccess --version 1.1 --sequence 2
+peer lifecycle chaincode approveformyorg ... --name consentaccess --version 1.3 --sequence 4 --package-id <id>   # for each org
+peer lifecycle chaincode commit ... --name consentaccess --version 1.3 --sequence 4
 ```
 
 On a fresh network, use sequence 1. Steps 3 and 5 of [chaincode/deployment/README.md](chaincode/deployment/README.md) have more detail.
@@ -98,34 +114,65 @@ By default it connects to `localhost:7051` as the Org1 Admin, using the crypto m
 
 | Method | Route | Body / query |
 |---|---|---|
-| GET | `/` | Status: what the API is connected to, whether the chaincode and database answer (200 `ok` or 503), and the routes below |
-| POST | `/consent/grant` | `patientId, providerId, scope, expiry` |
-| POST | `/consent/revoke` | `patientId, providerId` |
-| POST | `/access/request` | `requestId, providerId, patientId, recordReference` (the record must exist and belong to the patient; its content hash is recorded on the ledger) |
-| POST | `/access/verify` | `requestId` (verifies, then logs the outcome) |
+| GET | `/` | Health check (no sign-in): what the API is connected to, whether the chaincode and database answer (200 `ok` or 503) |
+| POST | `/auth/login` | `username, password`; sets the session cookie |
+| POST | `/auth/logout` | Ends the session |
+| GET | `/auth/me` | The signed-in account |
+| PUT | `/auth/profile` | `displayName, email, phone` |
+| POST | `/auth/password` | `currentPassword, newPassword` (8–72 characters); signs out other sessions |
+| POST | `/consent/grant` | `patientId, providerId, scope, expiry` (patient, own consent only) |
+| POST | `/consent/revoke` | `patientId, providerId` (patient, own consent only) |
+| POST | `/access/request` | `requestId, providerId, patientId, recordReference` (provider, as itself; the record must belong to the patient; its content hash is recorded on the ledger) |
+| POST | `/access/verify` | `requestId` (the requesting provider; verifies, then logs the outcome) |
+| GET | `/access/requests` | The requests the account may see |
+| GET | `/access/status` | `?requestId=...` |
 | GET | `/access/log` | `?requestId=...` |
-| GET | `/access/record` | `?requestId=...` returns the off-chain record: 403 if not `GRANTED` or consent revoked/expired, 409 if the record changed since it was requested |
+| GET | `/access/record` | `?requestId=...` returns the off-chain record to the requesting provider: 403 if not `GRANTED` or consent revoked/expired, 409 if the record changed since it was requested |
+| GET | `/consent` | `?patientId=...&providerId=...` |
+| GET | `/directory` | Patients, providers and record metadata the account may see |
+| GET | `/audit/log`, `/audit/verify` | The whole audit log and its integrity check (regulator) |
+
+## Run the web app
+
+With the API running on port 18080:
+
+```bash
+cd web
+npm install
+npm run dev -- --host 127.0.0.1
+```
+
+Open http://127.0.0.1:5173 and sign in with a walkthrough account. The dev server forwards `/api/...` to the API, so the browser never holds Fabric certificates or database credentials. Each role gets its own pages:
+
+- **Patient**: overview, consent management (allow or revoke each organisation, with a consent history timeline)
+- **Laboratory and other providers**: overview, access requests (request, verify, open the record once granted)
+- **Hospital**: overview, the records it holds and who can access them, access requests
+- **Regulator**: overview, the audit log with a one-click integrity check, records
+
+Every account has **Profile settings** (name, email, phone, change password) and **Switch account** / **Sign out** in the user menu. The search bar finds patients, organisations, records, requests, audit entries and pages that the signed-in account can see.
 
 ## Run the end-to-end demo
 
-Import [chaincode/deployment/consentaccess.postman_collection.json](chaincode/deployment/consentaccess.postman_collection.json) into Postman, set `baseUrl` to `http://localhost:18080`, and run it starting from request 1, which generates fresh request IDs for each run. Or, from the command line:
+Import [chaincode/deployment/consentaccess.postman_collection.json](chaincode/deployment/consentaccess.postman_collection.json) into Postman and run the whole collection. It signs in as the patient, the laboratory and the regulator in turn, and every request has assertions. Or, from the command line:
 
 ```bash
-npx newman@6.2.1 run chaincode/deployment/consentaccess.postman_collection.json --env-var baseUrl=http://localhost:18080
+npx newman@6.2.1 run chaincode/deployment/consentaccess.postman_collection.json
 ```
 
 ## Known limitations
 
 - `VerifyAndGrantAccess` and `LogAccessEvent` are separate transactions, so a failure between them can leave a decision without a log entry.
 - The audit log's hash chain uses a single "latest entry" key, so concurrent log writes in the same block conflict and one is rejected.
-- The API signs every transaction as the Org1 Admin. Per-user identities would be needed beyond a prototype.
+- Access control is enforced by the API using application accounts; every Fabric transaction is still signed by the Org1 Admin identity. Issuing each user their own Fabric CA identity would move that enforcement onto the network itself.
 - A consent's `scope` is recorded but not checked against the requested record's type: any record of the patient can be requested under an active consent.
 - `/access/record` checks consent expiry against the API server's clock, since it is a read and has no transaction timestamp.
+- The session cookie is not marked `Secure`, because the prototype runs over plain HTTP on localhost; serve it over HTTPS before any wider use.
 
 ## Status
 
 - [x] Chaincode logic and unit tests
 - [x] Deployed on a two-org Fabric test network
 - [x] REST API connected through Fabric Gateway; Postman demo passing on the live network
-- [x] PostgreSQL off-chain record store, with record content hashes on the ledger (chaincode v1.1)
-- [ ] Web application and usability (TAM) evaluation
+- [x] PostgreSQL off-chain record store, with record content hashes on the ledger
+- [x] Web application with sign-in and role-based access control
+- [ ] Usability (TAM) evaluation

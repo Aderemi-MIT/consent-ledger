@@ -75,6 +75,10 @@ func handleGetRecord(w http.ResponseWriter, r *http.Request) {
 		writeFabricErr(w, err)
 		return
 	}
+	if u := userFrom(r); u.Role != "provider" || u.ProviderID != req.ProviderID {
+		forbid(w, "only the provider that made a request can open its record")
+		return
+	}
 	if req.Status != consentaccess.StatusGranted {
 		writeErr(w, http.StatusForbidden, fmt.Errorf("access was not granted for request %s (status %s)", requestID, req.Status))
 		return

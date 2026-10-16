@@ -1,31 +1,145 @@
 {
   "info": {
     "name": "Consent-and-Access-Control Chaincode (Section 3.5)",
-    "description": "Exercises the five chaincode functions via the REST wrapper in cmd/api, plus the off-chain record route (/access/record, requests 4a, 10 and 11), which releases a PostgreSQL record only for a GRANTED request with active consent and a content hash matching the ledger. Matches the request/response transcript captured in test_evidence.md. Point {{baseUrl}} at the Fabric-Gateway-backed deployment once Steps 3-4 of deployment/README.md are complete. Request IDs include {{runId}}, which request 1 sets to the current UTC time, because a real ledger keeps every request ID and rejects duplicates; run the requests in order (or the whole collection) so each run uses fresh IDs.",
+    "description": "Exercises the five chaincode functions via the REST API in cmd/api, signing in as each role in turn (patient tunde.adeyemi, laboratory lab.b, regulator regulator.e), plus the off-chain record route (/access/record) and role-based access control (requests 1b and 12). Every request has assertions, so a Newman run reports whether each outcome is as expected. Set {{baseUrl}} to the running API (default http://localhost:18080) and {{demoPassword}} to the demo accounts' password from postgres_auth.sql. Request IDs include {{runId}}, which request 0 sets to the current UTC time, because a real ledger keeps every request ID and rejects duplicates; run the whole collection in order so each run uses fresh IDs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "runId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:18080"
+    },
+    {
+      "key": "demoPassword",
+      "value": "ConsentDemo2026"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "hash1001",
+      "value": ""
+    }
   ],
   "item": [
     {
-      "name": "1. Grant Consent",
+      "name": "0. Sign in as tunde.adeyemi",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "// Fresh request IDs for this run, e.g. req-20261013T171500-1001.",
+              "// Fresh request IDs for this run, e.g. req-20261017T101500-1001.",
               "pm.collectionVariables.set('runId', new Date().toISOString().replace(/[-:]/g, '').slice(0, 15));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('tunde.adeyemi signed in', () => pm.response.to.have.status(200));",
+              "pm.test('session cookie set', () => pm.expect(pm.cookies.has('cl_session')).to.be.true);"
             ]
           }
         }
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tunde.adeyemi\",\n  \"password\": \"{{demoPassword}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "1. Grant Consent",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('the patient grants consent', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/consent/grant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patientId\": \"patient-002\",\n  \"providerId\": \"provider-lab-B\",\n  \"scope\": \"full-record\",\n  \"expiry\": \"2026-12-31T00:00:00Z\"\n}"
+        }
+      }
+    },
+    {
+      "name": "1a. Sign in as lab.b",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('lab.b signed in', () => pm.response.to.have.status(200));",
+              "pm.test('session cookie set', () => pm.expect(pm.cookies.has('cl_session')).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"lab.b\",\n  \"password\": \"{{demoPassword}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "1b. Lab Cannot Grant Consent for a Patient (expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('only the patient can grant consent', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/consent/grant",
         "body": {
           "mode": "raw",
@@ -35,9 +149,25 @@
     },
     {
       "name": "2. Request Access",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('the lab requests access as itself', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/access/request",
         "body": {
           "mode": "raw",
@@ -47,9 +177,26 @@
     },
     {
       "name": "3. Verify And Grant Access",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('verified', () => pm.response.to.have.status(200));",
+              "pm.test('access GRANTED', () => pm.expect(pm.response.json().outcome).to.eql('GRANTED'));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/access/verify",
         "body": {
           "mode": "raw",
@@ -59,6 +206,19 @@
     },
     {
       "name": "4. Get Audit Log Entry",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('log entry found', () => pm.response.to.have.status(200));",
+              "pm.test('outcome logged as GRANTED', () => pm.expect(pm.response.json().outcome).to.eql('GRANTED'));",
+              "pm.collectionVariables.set('hash1001', pm.response.json().hash);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/access/log?requestId=req-{{runId}}-1001"
@@ -84,10 +244,55 @@
       }
     },
     {
-      "name": "5. Revoke Consent",
+      "name": "4b. Sign in as tunde.adeyemi",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('tunde.adeyemi signed in', () => pm.response.to.have.status(200));",
+              "pm.test('session cookie set', () => pm.expect(pm.cookies.has('cl_session')).to.be.true);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tunde.adeyemi\",\n  \"password\": \"{{demoPassword}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Revoke Consent",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('the patient revokes consent', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/consent/revoke",
         "body": {
           "mode": "raw",
@@ -96,10 +301,55 @@
       }
     },
     {
-      "name": "6. Request Access (after revoke)",
+      "name": "5a. Sign in as lab.b",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('lab.b signed in', () => pm.response.to.have.status(200));",
+              "pm.test('session cookie set', () => pm.expect(pm.cookies.has('cl_session')).to.be.true);"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"lab.b\",\n  \"password\": \"{{demoPassword}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6. Request Access (after revoke)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('request recorded', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/access/request",
         "body": {
           "mode": "raw",
@@ -109,9 +359,26 @@
     },
     {
       "name": "7. Verify And Grant Access (expect DENIED)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('verified', () => pm.response.to.have.status(200));",
+              "pm.test('access DENIED after revocation', () => pm.expect(pm.response.json().outcome).to.eql('DENIED'));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/access/verify",
         "body": {
           "mode": "raw",
@@ -121,6 +388,18 @@
     },
     {
       "name": "8. Get Audit Log Entry (after revoke, hash-chained to #4)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('log entry found', () => pm.response.to.have.status(200));",
+              "pm.test('chained to the entry from #4', () => pm.expect(pm.response.json().prevHash).to.eql(pm.collectionVariables.get('hash1001')));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/access/log?requestId=req-{{runId}}-1002"
@@ -128,9 +407,25 @@
     },
     {
       "name": "9. Verify Unknown Request (expect 400 error)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('unknown request rejected', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/access/verify",
         "body": {
           "mode": "raw",
@@ -172,6 +467,72 @@
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/access/record?requestId=req-{{runId}}-1002"
+      }
+    },
+    {
+      "name": "12. Lab Cannot Read the Full Audit Log (expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('only the regulator reads the full audit log', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/audit/log"
+      }
+    },
+    {
+      "name": "13. Sign in as regulator.e",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('regulator.e signed in', () => pm.response.to.have.status(200));",
+              "pm.test('session cookie set', () => pm.expect(pm.cookies.has('cl_session')).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"regulator.e\",\n  \"password\": \"{{demoPassword}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "14. Regulator Verifies Audit Log Integrity",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('integrity checked', () => pm.response.to.have.status(200));",
+              "pm.test('audit log intact', () => pm.expect(pm.response.json().intact).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/audit/verify"
       }
     }
   ]

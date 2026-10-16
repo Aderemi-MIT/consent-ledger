@@ -131,6 +131,10 @@ func handleGrantConsent(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
+	if u := userFrom(r); u.Role != "patient" || u.PatientID != req.PatientID {
+		forbid(w, "only the patient can grant consent to their records")
+		return
+	}
 	if _, err := submit(w, "GrantConsent", req.PatientID, req.ProviderID, req.Scope, req.Expiry.Format(time.RFC3339Nano)); err != nil {
 		writeFabricErr(w, err)
 		return
@@ -146,6 +150,10 @@ func handleRevokeConsent(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if u := userFrom(r); u.Role != "patient" || u.PatientID != req.PatientID {
+		forbid(w, "only the patient can revoke consent to their records")
 		return
 	}
 	if _, err := submit(w, "RevokeConsent", req.PatientID, req.ProviderID); err != nil {
@@ -165,6 +173,10 @@ func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if u := userFrom(r); u.Role != "provider" || u.ProviderID != req.ProviderID {
+		forbid(w, "a provider can only request access as itself")
 		return
 	}
 	// The ledger records the hash of the record's current content, so the
@@ -205,6 +217,17 @@ func handleVerifyAndGrantAccess(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
+	// An unknown request is a bad request here (HTTP 400), as it was before
+	// sign-in was added, so existing clients see the same response.
+	ar, ok := lookupRequestQuiet(req.RequestID)
+	if !ok {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("request %s not found", req.RequestID))
+		return
+	}
+	if u := userFrom(r); u.Role != "provider" || u.ProviderID != ar.ProviderID {
+		forbid(w, "only the provider that made a request can verify it")
+		return
+	}
 	resultJSON, err := submit(w, "VerifyAndGrantAccess", req.RequestID)
 	if err != nil {
 		writeFabricErr(w, err)
@@ -236,6 +259,10 @@ func handleVerifyAndGrantAccess(w http.ResponseWriter, r *http.Request) {
 // GET /access/log?requestId=...
 func handleGetLog(w http.ResponseWriter, r *http.Request) {
 	requestID := r.URL.Query().Get("requestId")
+	if ar, ok := lookupRequestQuiet(requestID); ok && !canSeeRequest(userFrom(r), ar.ProviderID, ar.PatientID) {
+		forbid(w, "you can only see log entries for your own requests")
+		return
+	}
 	entryJSON, err := contract.EvaluateTransaction("GetLogEntry", requestID)
 	if err != nil {
 		if msg, ok := chaincodeError(err); ok {
@@ -259,14 +286,50 @@ func handleGetLog(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, entry)
 }
 
+// lookupRequest reads an access request from the ledger, writing a 404 (or
+// the network error) and returning false if it can't.
+func lookupRequest(w http.ResponseWriter, requestID string) (*consentaccess.AccessRequest, bool) {
+	var ar consentaccess.AccessRequest
+	if err := evaluateJSON("GetRequest", &ar, requestID); err != nil {
+		if msg, ok := chaincodeError(err); ok {
+			writeErr(w, http.StatusNotFound, errors.New(msg))
+			return nil, false
+		}
+		writeFabricErr(w, err)
+		return nil, false
+	}
+	return &ar, true
+}
+
+// lookupRequestQuiet is lookupRequest without writing a response, for
+// routes that report a missing request in their own way.
+func lookupRequestQuiet(requestID string) (*consentaccess.AccessRequest, bool) {
+	var ar consentaccess.AccessRequest
+	if err := evaluateJSON("GetRequest", &ar, requestID); err != nil {
+		return nil, false
+	}
+	return &ar, true
+}
+
 // routes lists the API's endpoints for the status reply at "/".
 var routes = []string{
+	"POST /auth/login     {username, password}  (sets the session cookie; all routes below need it)",
+	"POST /auth/logout",
+	"GET  /auth/me",
+	"PUT  /auth/profile   {displayName, email, phone}",
+	"POST /auth/password  {currentPassword, newPassword}",
 	"POST /consent/grant   {patientId, providerId, scope, expiry}",
 	"POST /consent/revoke  {patientId, providerId}",
 	"POST /access/request  {requestId, providerId, patientId, recordReference}",
 	"POST /access/verify   {requestId}",
 	"GET  /access/log?requestId=...",
 	"GET  /access/record?requestId=...  (the off-chain record, once access is GRANTED)",
+	"GET  /access/status?requestId=...",
+	"GET  /access/requests  (the requests you may see)",
+	"GET  /consent?patientId=...&providerId=...",
+	"GET  /directory  (patients, providers, record metadata)",
+	"GET  /audit/log",
+	"GET  /audit/verify",
 }
 
 // statusHandler serves GET / with what the API is connected to and whether
@@ -438,12 +501,26 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/consent/grant", handleGrantConsent)
-	mux.HandleFunc("/consent/revoke", handleRevokeConsent)
-	mux.HandleFunc("/access/request", handleRequestAccess)
-	mux.HandleFunc("/access/verify", handleVerifyAndGrantAccess)
-	mux.HandleFunc("/access/log", handleGetLog)
-	mux.HandleFunc("GET /access/record", handleGetRecord)
+	mux.HandleFunc("POST /auth/login", handleLogin)
+	mux.HandleFunc("POST /auth/logout", handleLogout)
+	mux.HandleFunc("GET /auth/me", requireUser(handleMe))
+	mux.HandleFunc("PUT /auth/profile", requireUser(handleUpdateProfile))
+	mux.HandleFunc("POST /auth/password", requireUser(handleChangePassword))
+
+	// Every ledger and record route requires a signed-in account; each
+	// handler then checks what that account may do.
+	mux.HandleFunc("POST /consent/grant", requireUser(handleGrantConsent))
+	mux.HandleFunc("POST /consent/revoke", requireUser(handleRevokeConsent))
+	mux.HandleFunc("POST /access/request", requireUser(handleRequestAccess))
+	mux.HandleFunc("POST /access/verify", requireUser(handleVerifyAndGrantAccess))
+	mux.HandleFunc("GET /access/log", requireUser(handleGetLog))
+	mux.HandleFunc("GET /access/record", requireUser(handleGetRecord))
+	mux.HandleFunc("GET /access/status", requireUser(handleGetRequestStatus))
+	mux.HandleFunc("GET /access/requests", requireUser(handleListRequests))
+	mux.HandleFunc("GET /consent", requireUser(handleGetConsent))
+	mux.HandleFunc("GET /directory", requireUser(handleDirectory))
+	mux.HandleFunc("GET /audit/log", requireUser(handleAuditLog))
+	mux.HandleFunc("GET /audit/verify", requireUser(handleAuditVerify))
 	// "{$}" matches "/" exactly, so other unknown paths still return 404.
 	mux.HandleFunc("GET /{$}", statusHandler(channelName, chaincodeName, peerEndpoint, mspID))
 

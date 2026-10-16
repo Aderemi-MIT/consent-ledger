@@ -66,7 +66,13 @@ captured for the dissertation.
      postgres:16.4-alpine
    docker exec -i consentledger-db psql -v ON_ERROR_STOP=1 -U consentaccess -d offchain_records < postgres_schema.sql
    docker exec -i consentledger-db psql -v ON_ERROR_STOP=1 -U consentaccess -d offchain_records < postgres_seed.sql
+   docker exec -i consentledger-db psql -v ON_ERROR_STOP=1 -U consentaccess -d offchain_records < postgres_auth.sql
    ```
+
+   `postgres_auth.sql` creates the application accounts and sessions tables
+   and seeds the ten synthetic walkthrough accounts (five patients, four
+   providers, the regulator), which share the demo password noted in that
+   file.
 
    Port 5433 avoids clashing with another PostgreSQL on 5432. The REST API
    reads `DATABASE_URL` from the environment (`set -a; . deployment/.env;
