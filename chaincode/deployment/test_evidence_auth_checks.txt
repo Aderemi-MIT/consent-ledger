@@ -1,0 +1,62 @@
+# Sign-in and role-based access control checks
+# Run 2026-10-17T13:03:37Z against http://localhost:18080 (run id 20261017T130337)
+
+## Sign-in
+PASS  HTTP 401  no session: /directory is refused
+PASS  HTTP 401  wrong password is refused
+PASS  HTTP 200  tunde.adeyemi signs in
+PASS  HTTP 200  lab.b signs in
+PASS  HTTP 200  pharmacy.c signs in
+PASS  HTTP 200  hospital.a signs in
+PASS  HTTP 200  regulator.e signs in
+
+## Patients and consent
+PASS  HTTP 403  a laboratory cannot grant consent for a patient
+PASS  HTTP 403  a patient cannot grant another patient's consent
+PASS  HTTP 200  a patient grants their own consent
+PASS  HTTP 403  a pharmacy cannot read the laboratory's consent
+PASS  HTTP 200  the hospital reads a consent for a record it holds
+INFO  a patient's directory lists 1 patient and 3 records
+INFO  a laboratory's directory lists 5 patients and 9 records
+
+## Access requests
+PASS  HTTP 403  a laboratory cannot request access as the pharmacy
+PASS  HTTP 200  the laboratory requests access as itself
+PASS  HTTP 403  the pharmacy cannot verify the laboratory's request
+PASS  HTTP 403  the pharmacy cannot read the laboratory's request
+PASS  HTTP 200  the laboratory verifies its own request
+PASS  HTTP 403  the hospital cannot open the laboratory's record
+PASS  HTTP 200  the patient sees a request concerning them
+PASS  HTTP 200  the patient sees the log entry concerning them
+INFO  /access/requests (from the ledger) lists 18 requests for lab.b, all its own: True
+INFO  /access/requests lists 18 requests for tunde.adeyemi, all about patient-002: True
+
+## Off-chain tamper detection
+PASS  HTTP 200  the laboratory opens the granted record
+INFO  content hash on the ledger and in PostgreSQL: 5123fe1c2751763030499fc19088a4264c669ef77d0cdeae8b428c471d920600 / 5123fe1c2751763030499fc19088a4264c669ef77d0cdeae8b428c471d920600
+INFO  TAMPER: haemoglobin changed from 13.8 to 9.1 directly in PostgreSQL
+PASS  HTTP 409  the altered record is refused
+      response: {"error":"record ehr-ref-55A has changed since access was requested: its content hash 3e705febe6b161cbb5effe9985c696390c61a38ecdb217863382ed39c390278f does not match the hash 5123fe1c2751763030499fc19088a4264c669ef77d0cdeae8b428c471d920600 recorded on the ledger"}
+INFO  RESTORE: haemoglobin set back to 13.8
+PASS  HTTP 200  the restored record is released again
+INFO  hash after restore matches the ledger: True
+
+## Revocation, audit log and profile
+PASS  HTTP 200  the patient revokes consent
+PASS  HTTP 403  the previously granted record is refused after revocation
+PASS  HTTP 403  a patient cannot read the full audit log
+PASS  HTTP 403  a laboratory cannot verify the full audit log
+PASS  HTTP 200  the regulator verifies the audit log
+      response: {"intact":true,"brokenAt":""}
+PASS  HTTP 400  a malformed email is rejected
+PASS  HTTP 200  the patient updates their profile (restores the seeded details)
+PASS  HTTP 400  a password change with the wrong current password is rejected
+PASS  HTTP 200  the patient changes their password
+PASS  HTTP 401  the old password no longer works
+PASS  HTTP 200  the new password works
+PASS  HTTP 200  the password is changed back to the demo password
+PASS  HTTP 200  the patient signs out
+PASS  HTTP 401  the session no longer works after sign-out
+PASS  HTTP 429  a sixth failed sign-in within five minutes is rate-limited
+
+RESULT: 38 passed, 0 failed

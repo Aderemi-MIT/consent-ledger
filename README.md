@@ -82,6 +82,10 @@ web/                       React + TypeScript web app (Vite)
 
 - PostgreSQL 16 for the off-chain records and accounts, run in Docker with the schema, seed data and accounts loaded: step 5 of [chaincode/deployment/README.md](chaincode/deployment/README.md). Copy `chaincode/deployment/.env.example` to `.env` and set a password first.
 
+## Quick start on Windows
+
+Once everything below is set up, double-click **`scripts\start-consentledger.cmd`** after each restart. It checks free disk space, starts WSL Ubuntu, Docker Desktop, PostgreSQL and the Fabric containers (peers last, retrying the orderer if needed), then the REST API and the web app in their own windows, and opens http://127.0.0.1:5173. Anything already running is left alone. Close the API and web app windows when you're finished.
+
 ## Run the tests
 
 ```bash

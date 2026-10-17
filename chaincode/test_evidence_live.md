@@ -5,13 +5,17 @@ output from the live network, and Fabric transaction IDs, block numbers and hash
 as recorded by the peers. Nothing here is simulated or invented. It extends
 `test_evidence.md` (unit tests and an in-memory run of the same logic) onto real
 Fabric infrastructure, covering steps (a)–(c) of Section 4.8 and the tamper-evidence
-test of Section 3.7 against the live ledger.
+test of Section 3.7 against the live ledger. Sections 7–11 were added on 2026-10-17, after
+the chaincode was upgraded to v1.3 and the off-chain record store, sign-in and role-based
+access control were added.
 
 Raw files, in `deployment/`:
 
 - `test_evidence_live_newman.json`: full Newman report of the Postman run (every request, response and header)
 - `test_evidence_live_blocks.json`: blocks 33–41, fetched from peer0.org2 and decoded
 - `test_evidence_live_tamper.json`: every step of the CouchDB tamper test
+- `test_evidence_auth_checks.txt`: the sign-in, role-based access control and off-chain tamper checks (Sections 9–10)
+- `test_evidence_auth_newman.json`: full Newman report of the signed-in Postman run (Section 11)
 
 ## 1. Environment
 
@@ -245,18 +249,165 @@ cache evicts it. The edit was reverted before the second attempt. This does not 
 result: the tampering went undetected only while the peer was still serving the original, correct
 value, and it was detected as soon as the altered value was served.
 
-## 7. What this evidence does and does not cover
+## 7. Chaincode upgrades (v1.1 to v1.3)
+
+The chaincode was upgraded three times with the standard Fabric lifecycle: a new package was
+installed on both peers, approved by both organizations and committed under a new sequence
+number. Every approval and commit transaction was VALID on both peers. Times are WAT (UTC+1).
+
+| Version | Sequence | Committed | What changed | Commit transaction |
+|---|---|---|---|---|
+| 1.0 | 1 | 2026-10-13 | First deployment (Section 2) | `30a5fa102f7eb0e8f84516cfcc991a3c599cade9d3157a08a9781e383cddf6b4` |
+| 1.1 | 2 | 2026-10-15 13:27 | `RequestAccess` stores the SHA-256 of the off-chain record (Section 3.4.4) | `7633af15e13941e14423719ca9ca032c1d690d5b8ec4ac572803a85b5f4c5e77` |
+| 1.2 | 3 | 2026-10-16 13:55 | Read-only `GetAuditLog` and `VerifyAuditLog` | `e0d3252615fee3f399332e37688af3d36841bc2b486c9426813d19426c5dd157` |
+| 1.3 | 4 | 2026-10-17 00:07 | Read-only `GetRequests` | `85659a8615912d894410cd93ee538e855fdc26fe11d1478ab689ba23b5a52628` |
+
+| Version | Package ID | Approve (Org1MSP) | Approve (Org2MSP) |
+|---|---|---|---|
+| 1.1 | `consentaccess_1.1:3e76ef3fae6805fa5509c390c0452b84adb92a3daa039a6a9d1cdec7433486db` | `6f1d60628f0de52e74bccca557a8ac30f47e4c60ea7a58820f1ff82feeccaee9` | `1ebb58c75351fbd50348f54dd6c8f1080357060a43a1a545265b61468de3ae7c` |
+| 1.2 | `consentaccess_1.2:a8614399727e06bdf999ed03a11d822faf17eda34f13d9569f3717da62ecf87e` | `f18818e92d7a64cec14d2dad4f3940eab07031b430fc8dec6536ecef0e806544` | `0143d72ffb7b77f407f615f44e4c21319949cf945f42c7f24ab5178e7be208af` |
+| 1.3 | `consentaccess_1.3:26bfc4e1625e816e259cbdb500d9e56b2e8004e03d763d80467e87d4d636d50a` | `4d45baea3bd9507360c0722e2152b3db53c3b3d7c8d0e077cea5376f15988937` | `545fbc5cac896b898e033fcf7e71032b6f9aea64b80cc7c8d378bb7cc809da94` |
+
+`peer lifecycle chaincode querycommitted --channelID mychannel` on peer0.org2, 2026-10-17:
+
+```
+Name: consentaccess, Version: 1.3, Sequence: 4, Endorsement Plugin: escc, Validation Plugin: vscc
+```
+
+The upgrades kept all existing ledger data: requests created before v1.1 simply have no content
+hash, and the API refuses to release a record for them (HTTP 409). One operational finding: during
+the v1.1 install, the peer CLI disconnected after about five minutes (`too_many_pings`) while the
+peer was still building the chaincode image. The build finished regardless, and
+`peer lifecycle chaincode queryinstalled` confirmed the package before approval.
+
+## 8. Unit and functional tests (re-run 2026-10-17)
+
+`go test ./... -v`: 14 of 14 tests passed. These are the 13 tests of Section 3, with `RequestAccess`
+calls given the new content-hash argument, plus
+`TestRequestAccess_RecordsContentHash_RejectsInvalidHash`, which checks that the hash is stored on the
+request and that empty, malformed, upper-case and truncated hashes are rejected.
+
+## 9. Sign-in and role-based access control
+
+Every API route except the health check requires a signed-in account, and the API checks what that
+account may do. These checks ran against the live network on 2026-10-17 with the seeded walkthrough
+accounts (raw transcript: `deployment/test_evidence_auth_checks.txt`). **All 38 checks passed.**
+
+| Check | Expected | Result |
+|---|---|---|
+| No session: /directory is refused | HTTP 401 | Pass |
+| Wrong password is refused | HTTP 401 | Pass |
+| Tunde.adeyemi signs in | HTTP 200 | Pass |
+| Lab.b signs in | HTTP 200 | Pass |
+| Pharmacy.c signs in | HTTP 200 | Pass |
+| Hospital.a signs in | HTTP 200 | Pass |
+| Regulator.e signs in | HTTP 200 | Pass |
+| A laboratory cannot grant consent for a patient | HTTP 403 | Pass |
+| A patient cannot grant another patient's consent | HTTP 403 | Pass |
+| A patient grants their own consent | HTTP 200 | Pass |
+| A pharmacy cannot read the laboratory's consent | HTTP 403 | Pass |
+| The hospital reads a consent for a record it holds | HTTP 200 | Pass |
+| A laboratory cannot request access as the pharmacy | HTTP 403 | Pass |
+| The laboratory requests access as itself | HTTP 200 | Pass |
+| The pharmacy cannot verify the laboratory's request | HTTP 403 | Pass |
+| The pharmacy cannot read the laboratory's request | HTTP 403 | Pass |
+| The laboratory verifies its own request | HTTP 200 | Pass |
+| The hospital cannot open the laboratory's record | HTTP 403 | Pass |
+| The patient sees a request concerning them | HTTP 200 | Pass |
+| The patient sees the log entry concerning them | HTTP 200 | Pass |
+
+- A patient's directory lists 1 patient and 3 records.
+- A laboratory's directory lists 5 patients and 9 records.
+- /access/requests (from the ledger) lists 18 requests for lab.b, all its own: True.
+- /access/requests lists 18 requests for tunde.adeyemi, all about patient-002: True.
+
+| Check | Expected | Result |
+|---|---|---|
+| The patient revokes consent | HTTP 200 | Pass |
+| The previously granted record is refused after revocation | HTTP 403 | Pass |
+| A patient cannot read the full audit log | HTTP 403 | Pass |
+| A laboratory cannot verify the full audit log | HTTP 403 | Pass |
+| The regulator verifies the audit log | HTTP 200 | Pass |
+| A malformed email is rejected | HTTP 400 | Pass |
+| The patient updates their profile (restores the seeded details) | HTTP 200 | Pass |
+| A password change with the wrong current password is rejected | HTTP 400 | Pass |
+| The patient changes their password | HTTP 200 | Pass |
+| The old password no longer works | HTTP 401 | Pass |
+| The new password works | HTTP 200 | Pass |
+| The password is changed back to the demo password | HTTP 200 | Pass |
+| The patient signs out | HTTP 200 | Pass |
+| The session no longer works after sign-out | HTTP 401 | Pass |
+| A sixth failed sign-in within five minutes is rate-limited | HTTP 429 | Pass |
+
+## 10. Off-chain tamper detection
+
+This repeats the idea of Section 6 for the off-chain store: a clinical record was altered directly
+in PostgreSQL, bypassing the API, and the laboratory then tried to open it under its GRANTED request.
+
+| # | Step | Result |
+|---|---|---|
+| 1 | The laboratory opens the granted record | HTTP 200 (pass) |
+| 2 | content hash on the ledger and in PostgreSQL: 5123fe1c2751763030499fc19088a4264c669ef77d0cdeae8b428c471d920600 / 5123fe1c2751763030499fc19088a4264c669ef77d0cdeae8b428c471d920600 | |
+| 3 | TAMPER: haemoglobin changed from 13.8 to 9.1 directly in PostgreSQL | |
+| 4 | The altered record is refused | HTTP 409 (pass) |
+| | API response | `{"error":"record ehr-ref-55A has changed since access was requested: its content hash 3e705febe6b161cbb5effe9985c696390c61a38ecdb217863382ed39c390278f does not match the hash 5123fe1c2751763030499fc19088a4264c669ef77d0cdeae8b428c471d920600 recorded on the ledger"}` |
+| 5 | RESTORE: haemoglobin set back to 13.8 | |
+| 6 | The restored record is released again | HTTP 200 (pass) |
+| 7 | hash after restore matches the ledger: True | |
+
+**Result: the altered record was refused.** The ledger keeps the SHA-256 of the record as it was
+when access was requested; the API recomputes the hash from PostgreSQL before releasing the record,
+and the edit changed it from `5123fe1c…` to `3e705feb…`. After the original value was restored, the
+hash matched again and the record was released. The edit never reached the provider.
+
+## 11. End-to-end run with sign-in (Postman collection, 2026-10-17)
+
+The Postman collection now signs in as the patient (`tunde.adeyemi`), the laboratory (`lab.b`) and
+the regulator (`regulator.e`) in turn, and every request has assertions. Newman 6.2.1 ran all
+20 requests: **31 of 31 assertions passed** (raw report: `deployment/test_evidence_auth_newman.json`).
+
+| Request | HTTP | Assertions passed | Ledger transactions |
+|---|---|---|---|
+| 0. Sign in as tunde.adeyemi | 200 | 2/2 | — |
+| 1. Grant Consent | 200 | 1/1 | GrantConsent block 91 ab8395e8ab7a… |
+| 1a. Sign in as lab.b | 200 | 2/2 | — |
+| 1b. Lab Cannot Grant Consent for a Patient (expect 403) | 403 | 1/1 | — |
+| 2. Request Access | 200 | 1/1 | RequestAccess block 92 f7699aafc8ac… |
+| 3. Verify And Grant Access | 200 | 2/2 | VerifyAndGrantAccess block 93 f40f66895fb1…; LogAccessEvent block 94 25bdad8b5792… |
+| 4. Get Audit Log Entry | 200 | 2/2 | — |
+| 4a. Fetch Granted Record (off-chain, hash-verified) | 200 | 2/2 | — |
+| 4b. Sign in as tunde.adeyemi | 200 | 2/2 | — |
+| 5. Revoke Consent | 200 | 1/1 | RevokeConsent block 95 17a1c52c4633… |
+| 5a. Sign in as lab.b | 200 | 2/2 | — |
+| 6. Request Access (after revoke) | 200 | 1/1 | RequestAccess block 96 95a3b5800680… |
+| 7. Verify And Grant Access (expect DENIED) | 200 | 2/2 | VerifyAndGrantAccess block 97 e47a9bd5f467…; LogAccessEvent block 98 7b6557ce37fa… |
+| 8. Get Audit Log Entry (after revoke, hash-chained to #4) | 200 | 2/2 | — |
+| 9. Verify Unknown Request (expect 400 error) | 400 | 1/1 | — |
+| 10. Fetch Record from #4a After Revoke (expect 403) | 403 | 1/1 | — |
+| 11. Fetch Record for DENIED Request (expect 403) | 403 | 1/1 | — |
+| 12. Lab Cannot Read the Full Audit Log (expect 403) | 403 | 1/1 | — |
+| 13. Sign in as regulator.e | 200 | 2/2 | — |
+| 14. Regulator Verifies Audit Log Integrity | 200 | 2/2 | — |
+
+The eight state changes were committed in blocks 91–98; the channel height was 99 afterwards.
+Requests 1b and 12 show the API refusing a laboratory that tries to grant consent or read the full
+audit log, and request 8 checks that the second log entry is chained to the first.
+
+## 12. What this evidence does and does not cover
 
 This demonstrates the chaincode running inside real Hyperledger Fabric peers on a
 two-organization network. Every state change was endorsed by both organizations, ordered by the
 Raft orderer and committed to both peers' ledgers. The access decisions (GRANTED, then DENIED
 after revocation), the hash-chained audit log and the error handling behave exactly as in the
 in-memory run in `test_evidence.md`, and the tamper-evidence property holds on the live ledger.
+Sections 9–11 add that every API call is made by a signed-in account whose role the API enforces,
+and that an off-chain record altered after access was requested is not released.
 
 It does **not** cover:
 
-- **Per-user identities.** The API signs every transaction as the Org1 Admin. A real deployment would issue Fabric CA identities to individual patients and providers.
+- **Per-user Fabric identities.** Accounts and roles are enforced by the API (Section 9), but every Fabric transaction is still signed by the Org1 Admin. Issuing each user a Fabric CA identity would move that enforcement onto the network.
 - **Atomic verify-and-log.** `VerifyAndGrantAccess` and `LogAccessEvent` are separate transactions (blocks 36/37 and 40/41), so a failure between them would leave a decision without a log entry.
 - **Concurrent logging.** Every `LogAccessEvent` updates a single chain-head key, so two log writes in the same block would conflict and one would be rejected. The run above was sequential.
 - **Choice of entries to check.** `VerifyLogChainIntegrity` checks the request IDs it is given, in the order given. Here the order was read from the ledger by sequence number.
-- **The usability evaluation (Section 4.8, step (d)),** which needs the web application and participants.
+- **Consent scope.** A consent's scope is recorded but not checked against the record type requested.
+- **The usability evaluation (Section 4.8, step (d)),** which needs participants; the web application and instruments are ready.

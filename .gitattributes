@@ -3,6 +3,10 @@
 # shell scripts and gofmt reports CRLF-formatted Go files.
 * text=auto eol=lf
 
+# Windows scripts keep Windows line endings.
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
 *.png binary
 *.jpg binary
 *.gif binary
