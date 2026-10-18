@@ -1,0 +1,26 @@
+# Caddy site for the hosted ConsentLedger demo. server-setup.sh replaces
+# {$DOMAIN} and installs this as /etc/caddy/Caddyfile. Caddy obtains and
+# renews the HTTPS certificate automatically.
+{$DOMAIN} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+		-Server
+	}
+
+	# The web app calls /api/...; the REST API serves the same routes
+	# without the prefix (as the Vite dev proxy does locally).
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:18080
+	}
+
+	handle {
+		root * /var/www/consentledger
+		try_files {path} /index.html
+		file_server
+	}
+}

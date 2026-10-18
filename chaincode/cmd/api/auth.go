@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -96,6 +97,11 @@ func requireUser(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// cookieSecure marks the session cookie Secure, so browsers send it only
+// over HTTPS. Set COOKIE_SECURE=true when the app is served over HTTPS
+// (the hosted deployment); leave it unset for http://localhost.
+var cookieSecure = os.Getenv("COOKIE_SECURE") == "true"
+
 func setSessionCookie(w http.ResponseWriter, token string, expires time.Time) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
@@ -103,12 +109,13 @@ func setSessionCookie(w http.ResponseWriter, token string, expires time.Time) {
 		Path:     "/",
 		Expires:  expires,
 		HttpOnly: true,
+		Secure:   cookieSecure,
 		SameSite: http.SameSiteStrictMode,
 	})
 }
 
 func clearSessionCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: cookieSecure, SameSite: http.SameSiteStrictMode})
 }
 
 // loginLimiter slows password guessing: at most 5 failed attempts per

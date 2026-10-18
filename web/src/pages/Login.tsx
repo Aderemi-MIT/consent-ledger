@@ -12,6 +12,10 @@ const DEMO_ACCOUNTS = [
   { username: 'regulator.e', label: 'Health Regulator E', role: 'Regulator', type: 'regulator' },
 ]
 
+// A public deployment builds with VITE_HIDE_DEMO_ACCOUNTS=true, so the
+// sign-in page does not advertise the walkthrough usernames.
+const SHOW_DEMO_ACCOUNTS = import.meta.env.VITE_HIDE_DEMO_ACCOUNTS !== 'true'
+
 export function Login() {
   const { signIn, lastUsername } = useAuth()
   const [username, setUsername] = useState(lastUsername)
@@ -91,7 +95,7 @@ export function Login() {
                 setUsername(e.target.value)
                 setError(null)
               }}
-              placeholder="tunde.adeyemi"
+              placeholder={SHOW_DEMO_ACCOUNTS ? 'tunde.adeyemi' : 'Your username'}
             />
           </label>
           <label className="field">
@@ -124,6 +128,7 @@ export function Login() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
 
+          {SHOW_DEMO_ACCOUNTS && (
           <div className="demo-accounts">
             <div className="section-label">Walkthrough accounts</div>
             <ul className="list">
@@ -145,6 +150,7 @@ export function Login() {
               ))}
             </ul>
           </div>
+          )}
         </form>
       </section>
     </div>
