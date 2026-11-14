@@ -83,6 +83,14 @@ deploy/                    hosting on a cloud server: setup script, Caddy config
 
 - PostgreSQL 16 for the off-chain records and accounts, run in Docker with the schema, seed data and accounts loaded: step 5 of [chaincode/deployment/README.md](chaincode/deployment/README.md). Copy `chaincode/deployment/.env.example` to `.env` and set a password first.
 
+## Set up on a new Windows PC
+
+1. Install Git for Windows (`winget install -e --id Git.Git`), then clone this repository into a folder such as `C:\Users\<you>\projects`.
+2. Double-click **`scripts\setup-new-pc.cmd`**. It checks for about 30 GB of free disk space and installs WSL with Ubuntu 22.04, Docker Desktop and Node.js. Then it runs [scripts/setup-wsl.sh](scripts/setup-wsl.sh) inside Ubuntu, which installs Go and Fabric 2.5.16, brings up the network, deploys chaincode v1.3 and loads PostgreSQL. It stops at each step that needs you: a restart after installing WSL or Docker Desktop, creating your Ubuntu username and password, and turning on **Settings > Resources > WSL integration > Ubuntu-22.04** in Docker Desktop. Run it again after each one; it skips what is already done.
+3. From then on, use the quick start below.
+
+The new PC gets a fresh, empty ledger and its own database password in `chaincode/deployment/.env`. The walkthrough accounts and demo password are the same as on the original PC.
+
 ## Quick start on Windows
 
 Once everything below is set up, double-click **`scripts\start-consentledger.cmd`** after each restart. It checks free disk space, starts WSL Ubuntu, Docker Desktop, PostgreSQL and the Fabric containers (peers last, retrying the orderer if needed), then the REST API and the web app in their own windows, and opens http://127.0.0.1:5173. Anything already running is left alone. Close the API and web app windows when you're finished.
