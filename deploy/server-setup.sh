@@ -2,8 +2,8 @@
 # Sets up the hosted ConsentLedger demo on a fresh Ubuntu 22.04 server
 # (Oracle Cloud Always Free ARM VM, or any arm64/amd64 Ubuntu 22.04 VM).
 #
-#   git clone https://github.com/The-Net-Savvy/consentledger.git
-#   cd consentledger
+#   git clone https://github.com/Aderemi-MIT/consent-ledger.git
+#   cd consent-ledger
 #   ./deploy/server-setup.sh consentledger.duckdns.org
 #
 # The domain must already point at this server's public IP, and ports 80

@@ -85,8 +85,8 @@ icacls C:\Users\user\.ssh\consentledger.key /inheritance:r /grant:r "$($env:USER
 Then, on the server:
 
 ```
-git clone https://github.com/The-Net-Savvy/consentledger.git
-cd consentledger
+git clone https://github.com/Aderemi-MIT/consent-ledger.git
+cd consent-ledger
 ./deploy/server-setup.sh consentledger.duckdns.org
 ```
 
