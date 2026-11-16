@@ -174,7 +174,7 @@ npx newman@6.2.1 run chaincode/deployment/consentaccess.postman_collection.json
 
 ## Host it online
 
-[deploy/HOSTING.md](deploy/HOSTING.md) walks through putting the whole prototype on a free Oracle Cloud server with HTTPS, so remote participants can use it. [deploy/server-setup.sh](deploy/server-setup.sh) installs and starts everything on a fresh Ubuntu 22.04 VM; the hosted copy gets its own walkthrough password and secure session cookies.
+[deploy/HOSTING.md](deploy/HOSTING.md) (Oracle Cloud, free) and [deploy/HOSTING-HETZNER.md](deploy/HOSTING-HETZNER.md) (Hetzner, paid) walk through putting the whole prototype on a cloud server with HTTPS, so remote participants can use it. [deploy/server-setup.sh](deploy/server-setup.sh) installs and starts everything on a fresh Ubuntu 22.04 VM; the hosted copy gets its own walkthrough password and secure session cookies.
 
 ## Known limitations
 

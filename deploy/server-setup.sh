@@ -1,6 +1,7 @@
 #!/bin/bash
 # Sets up the hosted ConsentLedger demo on a fresh Ubuntu 22.04 server
-# (Oracle Cloud Always Free ARM VM, or any arm64/amd64 Ubuntu 22.04 VM).
+# (Hetzner Cloud, Oracle Cloud Always Free, or any arm64/amd64 Ubuntu 22.04
+# VM).
 #
 #   git clone https://github.com/Aderemi-MIT/consent-ledger.git
 #   cd consent-ledger
@@ -8,7 +9,8 @@
 #
 # The domain must already point at this server's public IP, and ports 80
 # and 443 must be open in the cloud firewall (see deploy/HOSTING.md).
-# Run as the normal login user (ubuntu), not root; it calls sudo itself.
+# Run it as the login user: root on Hetzner, ubuntu on Oracle (it calls
+# sudo itself when it is not root).
 # Safe to re-run: each step skips work that is already done.
 #
 # What it does:
@@ -26,10 +28,7 @@ if [ -z "$DOMAIN" ]; then
   echo "Usage: $0 <domain>   e.g. $0 consentledger.duckdns.org" >&2
   exit 1
 fi
-if [ "$(id -u)" = 0 ]; then
-  echo "Run this as your normal user (e.g. ubuntu), not root." >&2
-  exit 1
-fi
+USER="${USER:-$(id -un)}"
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 FABRIC_VERSION=2.5.16
@@ -58,6 +57,11 @@ step "1/6 Server firewall: allow HTTP and HTTPS"
 # Oracle's Ubuntu images ship iptables rules that reject everything except
 # SSH. Insert ACCEPT rules for 80/443 ahead of that REJECT, live and in the
 # saved rules file (edited directly so Docker's own chains are never saved).
+# Other providers (Hetzner) start with no rules; the ACCEPTs are then harmless.
+if ! command -v iptables >/dev/null; then
+  sudo apt-get update
+  sudo apt-get install -y iptables
+fi
 for port in 80 443; do
   if ! sudo iptables -C INPUT -p tcp -m state --state NEW --dport "$port" -j ACCEPT 2>/dev/null; then
     pos=$(sudo iptables -L INPUT --line-numbers -n | awk '/REJECT/ {print $1; exit}')
