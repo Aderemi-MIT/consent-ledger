@@ -26,9 +26,9 @@ In the Hetzner Cloud Console, open (or create) a project, then **Add Server**:
 
 1. **Location**: Falkenstein or Nuremberg (Germany) or Helsinki.
 2. **Image**: **Ubuntu 22.04**.
-3. **Type**: **Shared vCPU → Arm64 (Ampere) → CAX21** (4 vCPU, 8 GB RAM,
-   80 GB disk). If Arm64 is not offered at that location, choose
-   **x86 → CX32** (4 vCPU, 8 GB) instead; the script works on both.
+3. **Type**: **Regular Performance → x86 (AMD) → CPX22** (2 vCPU, 4 GB RAM,
+   80 GB disk), or **CPX32** (4 vCPU, 8 GB) for faster setup. The script adds
+   swap on 4 GB servers. Cheaper Cost-Optimized or Arm64 types also work if offered.
 4. **Networking**: keep **Public IPv4** and **Public IPv6** on.
 5. **SSH keys → Add SSH key**: paste the public key from your PC (the
    contents of `C:\Users\user\.ssh\id_ed25519.pub`, one line starting

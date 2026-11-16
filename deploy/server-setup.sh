@@ -73,6 +73,18 @@ for port in 80 443; do
   fi
 done
 
+# Small servers (4 GB, such as Hetzner CPX22) can run out of memory while
+# building the chaincode, the API and the web app; add 4 GB of swap.
+mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
+if [ "$mem_kb" -lt 7000000 ] && [ "$(swapon --noheadings | wc -l)" = 0 ]; then
+  sudo fallocate -l 4G /swapfile
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile >/dev/null
+  sudo swapon /swapfile
+  grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+  echo "Added 4 GB of swap."
+fi
+
 # ---------------------------------------------------------------------------
 step "2/6 Installing Docker, Go $GO_VERSION, Node.js $NODE_VERSION, jq and Fabric $FABRIC_VERSION"
 if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1; then
